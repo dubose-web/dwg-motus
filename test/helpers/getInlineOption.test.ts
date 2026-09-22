@@ -12,8 +12,11 @@ describe('getInlineOption', () => {
     expect(getInlineOption(el({ 'data-motus-delay': '300' }), 'delay')).toBe('300');
   });
 
-  it('ignores the legacy data-aos- prefix', () => {
-    expect(getInlineOption(el({ 'data-aos-delay': '300' }), 'delay', 'fallback')).toBe('fallback');
+  it('ignores an identically named attribute under a different prefix', () => {
+    expect(getInlineOption(el({ 'data-delay': '300' }), 'delay', 'fallback')).toBe('fallback');
+    expect(getInlineOption(el({ 'data-scroll-delay': '300' }), 'delay', 'fallback')).toBe(
+      'fallback',
+    );
   });
 
   it('coerces "true" and "false" to booleans', () => {

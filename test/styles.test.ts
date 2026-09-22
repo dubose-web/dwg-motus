@@ -33,8 +33,16 @@ describe('the full bundle', () => {
     expect(css).toContain('transition-duration: var(--motus-duration)');
   });
 
-  it('carries no trace of the old aos naming', () => {
-    expect(css).not.toMatch(/\baos\b|data-aos|--aos-/);
+  it('namespaces every selector and custom property under motus', () => {
+    // Guards against a stray prefix creeping in: every attribute selector and
+    // every custom property the stylesheet touches must be a motus one.
+    const attributeSelectors = [...new Set(css.match(/\[data-[a-z-]+/g) ?? [])];
+    expect(attributeSelectors.length).toBeGreaterThan(0);
+    expect(attributeSelectors.every((name) => name.startsWith('[data-motus'))).toBe(true);
+
+    const customProperties = css.match(/--[a-z-]+/g) ?? [];
+    expect(customProperties.length).toBeGreaterThan(0);
+    expect(customProperties.every((name) => name.startsWith('--motus-'))).toBe(true);
   });
 });
 

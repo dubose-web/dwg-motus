@@ -8,9 +8,6 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 than scroll listeners. TypeScript source, SCSS styles, zero runtime dependencies.
 Browser floor is native IntersectionObserver: Chrome 51+, Firefox 55+, Safari 12.1+, Edge 79+.
 
-Successor to the unpublished `aosio` (`/Users/jared/localhost/_ARCHIVE/aosio`). Clean API break:
-every `aos` token is now `motus`. No compatibility layer.
-
 ## Commands
 
 - `npm run dev` — Rollup watch + demo server on :8080 with live reload
