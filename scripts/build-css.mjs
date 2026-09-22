@@ -1,76 +1,100 @@
 /**
- * Compiles each stylesheet in scss/entries/ to its own file in dist/css/.
+ * Compiles the Sass partials into dist/css/, one stylesheet per family.
  *
- * Vite's library mode can only emit a single stylesheet per build, so CSS is
- * built here instead. Because the JS entry deliberately imports no CSS, nothing
- * about this has to coordinate with the Vite passes.
+ * Rollup's library mode emits a single stylesheet per build, so CSS is built
+ * here instead. The JS entry deliberately imports no CSS, so nothing about this
+ * has to coordinate with the Rollup passes.
+ *
+ * Source maps are emitted for local development only. They are not published:
+ * they would reference .scss files by absolute path and roughly double the
+ * size of the package for no consumer benefit.
  */
-import { mkdirSync, readdirSync, watch, writeFileSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import autoprefixer from 'autoprefixer';
 import cssnano from 'cssnano';
 import postcss from 'postcss';
 import * as sass from 'sass';
 
-const SRC = resolve('scss/entries');
-const OUT = resolve('dist/css');
-const isDev = process.env.NODE_ENV === 'development';
+/**
+ * Output name -> the partial it is compiled from.
+ *
+ * The partials are compiled directly; there are no wrapper entry files, since
+ * none of them need more than one `@use`. `motus` is the consumer-facing
+ * bundle, which forwards the config and pulls in core plus every family.
+ */
+export const CSS_TARGETS = {
+  core: 'scss/core.scss',
+  fade: 'scss/animations/fade.scss',
+  zoom: 'scss/animations/zoom.scss',
+  slide: 'scss/animations/slide.scss',
+  flip: 'scss/animations/flip.scss',
+  motus: 'scss/motus.scss',
+};
 
-mkdirSync(OUT, { recursive: true });
+const OUT = 'dist/css';
 
-// autoprefixer and cssnano both read the `browserslist` field in package.json.
-const plugins = [autoprefixer()];
-if (!isDev) {
-  plugins.push(cssnano({ preset: ['default', { discardComments: { removeAll: true } }] }));
-}
-const processor = postcss(plugins);
+export const buildCss = async ({ dev = false } = {}) => {
+  mkdirSync(resolve(OUT), { recursive: true });
 
-const buildAll = async () => {
-  const entries = readdirSync(SRC).filter((file) => file.endsWith('.scss'));
+  // autoprefixer and cssnano both read the `browserslist` field in package.json.
+  const plugins = [autoprefixer()];
+  if (!dev) {
+    plugins.push(cssnano({ preset: ['default', { discardComments: { removeAll: true } }] }));
+  }
+  const processor = postcss(plugins);
 
-  for (const file of entries) {
-    const name = basename(file, '.scss');
-    const from = resolve(SRC, file);
+  for (const [name, file] of Object.entries(CSS_TARGETS)) {
+    const from = resolve(file);
     const to = resolve(OUT, `${name}.css`);
 
     const compiled = sass.compile(from, {
-      // cssnano handles minification; keep sass output readable for the sourcemap.
+      // cssnano does the minifying; keep sass output readable.
       style: 'expanded',
       loadPaths: [resolve('scss')],
-      sourceMap: true,
-      sourceMapIncludeSources: true,
+      sourceMap: dev,
+      sourceMapIncludeSources: dev,
     });
 
     const result = await processor.process(compiled.css, {
       from,
       to,
-      map: { prev: compiled.sourceMap, inline: false },
+      ...(dev && compiled.sourceMap
+        ? { map: { prev: compiled.sourceMap, inline: false } }
+        : { map: false }),
     });
 
     writeFileSync(to, `${result.css}\n`);
-    if (result.map) writeFileSync(`${to}.map`, result.map.toString());
+    if (dev && result.map) writeFileSync(`${to}.map`, result.map.toString());
 
-    const kb = (Buffer.byteLength(result.css) / 1024).toFixed(2);
-    console.log(`dist/css/${name}.css  ${kb} kB`);
+    console.log(`${OUT}/${name}.css  ${(Buffer.byteLength(result.css) / 1024).toFixed(2)} kB`);
   }
 };
 
-await buildAll();
+const watchMode = process.argv.includes('--watch');
+const isDev = process.env.NODE_ENV === 'development';
 
-if (process.argv.includes('--watch')) {
-  console.log('watching scss/ for changes...');
+// Only build when run as a script, so the target map can be imported by tests.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await buildCss({ dev: isDev });
 
-  let rebuilding = false;
-  watch(resolve('scss'), { recursive: true }, () => {
-    if (rebuilding) return;
-    rebuilding = true;
-    // Coalesce the burst of events an editor save produces.
-    setTimeout(() => {
-      buildAll()
-        .catch((error) => console.error(error.message))
-        .finally(() => {
-          rebuilding = false;
-        });
-    }, 50);
-  });
+  if (watchMode) {
+    const { watch } = await import('node:fs');
+    console.log('watching scss/ for changes...');
+
+    let rebuilding = false;
+    watch(resolve('scss'), { recursive: true }, () => {
+      if (rebuilding) return;
+      rebuilding = true;
+      // Coalesce the burst of events an editor save produces.
+      setTimeout(() => {
+        buildCss({ dev: isDev })
+          .catch((error) => console.error(error.message))
+          .finally(() => {
+            rebuilding = false;
+          });
+      }, 50);
+    });
+  }
 }

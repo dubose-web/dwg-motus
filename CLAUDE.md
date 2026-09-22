@@ -44,7 +44,9 @@ Published verbatim. Filenames have **no `_` prefix** — partial resolution diff
 Sass CLI, sass-loader and Vite, and unprefixed names resolve identically everywhere.
 
 `config.scss` (`$motus-distance`) · `core.scss` · `animations/{fade,zoom,slide,flip}.scss`.
-`entries/` holds the build targets, compiled 1:1 into `dist/css/`.
+`scripts/build-css.mjs` compiles these partials directly into `dist/css/`; its `CSS_TARGETS` map
+is the single list of what gets built, and `test/styles.test.ts` imports it so the two cannot
+drift.
 
 ### Build
 

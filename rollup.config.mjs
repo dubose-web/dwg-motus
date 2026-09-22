@@ -7,6 +7,12 @@ import serve from 'rollup-plugin-serve';
 const isDev = process.env.NODE_ENV === 'development';
 
 /**
+ * Source maps are for local development only. Published maps would point at
+ * `src/*.ts` files that are not in the package, so a consumer's devtools would
+ * report "source not found" while the maps took up 45% of the tarball.
+ */
+
+/**
  * TypeScript does the downleveling, not the bundler.
  *
  * The source uses `??` and `?.`, which are Chrome 80+ / Safari 13.4+, so
@@ -32,8 +38,8 @@ export default [
   {
     input: 'src/index.ts',
     output: [
-      { file: 'dist/motus.js', format: 'es', sourcemap: true, banner },
-      { file: 'dist/motus.cjs', format: 'cjs', sourcemap: true, banner, exports: 'named' },
+      { file: 'dist/motus.js', format: 'es', sourcemap: isDev, banner },
+      { file: 'dist/motus.cjs', format: 'cjs', sourcemap: isDev, banner, exports: 'named' },
     ],
     plugins: [
       ts(),
@@ -54,7 +60,7 @@ export default [
         file: 'dist/motus.umd.js',
         format: 'umd',
         name: 'Motus',
-        sourcemap: true,
+        sourcemap: isDev,
         banner,
         exports: 'default',
       },

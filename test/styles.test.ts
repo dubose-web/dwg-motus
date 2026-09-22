@@ -1,10 +1,13 @@
 // @vitest-environment node
 import { fileURLToPath } from 'node:url';
 import * as sass from 'sass';
+// @ts-expect-error -- plain .mjs build script, no types
+import { CSS_TARGETS } from '../scripts/build-css.mjs';
 import { describe, expect, it } from 'vitest';
 
+// Reuses the build's own map, so the test cannot drift from what ships.
 const entry = (name: string) =>
-  fileURLToPath(new URL(`../scss/entries/${name}.scss`, import.meta.url));
+  fileURLToPath(new URL(`../${CSS_TARGETS[name as keyof typeof CSS_TARGETS]}`, import.meta.url));
 
 const loadPaths = [fileURLToPath(new URL('../scss', import.meta.url))];
 
