@@ -3,6 +3,8 @@ import type { MotusApi } from './types.js';
 
 export type {
   AnchorPlacement,
+  BreakpointName,
+  Breakpoints,
   CssEasingKeyword,
   DisableOption,
   Easing,
@@ -15,7 +17,7 @@ export type {
   ObserverHandle,
 } from './types.js';
 
-export { DEFAULTS } from './defaults.js';
+export { BREAKPOINTS, DEFAULTS } from './defaults.js';
 export { createObserver } from './observers/intersection.js';
 export { getRootMargin, getThreshold } from './observers/rootMargin.js';
 export { resolveEasing } from './helpers/resolveEasing.js';

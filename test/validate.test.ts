@@ -55,8 +55,52 @@ describe('normalizeOptions', () => {
 
   it('rejects an unknown disable keyword', () => {
     const warn = warnOnce();
-    expect(normalizeOptions({ disable: 'desktop' as never }).disable).toBe(false);
+    expect(normalizeOptions({ disable: 'desktop' as never }).disable).toBe(DEFAULTS.disable);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('disable'));
+  });
+
+  it('accepts every breakpoint tier name for disable', () => {
+    const warn = warnOnce();
+    for (const tier of ['sm', 'md', 'lg', 'xl', 'xxl'] as const) {
+      expect(normalizeOptions({ disable: tier }).disable).toBe(tier);
+    }
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('rejects xs, which would mean "below 0px"', () => {
+    const warn = warnOnce();
+    expect(normalizeOptions({ disable: 'xs' as never }).disable).toBe(DEFAULTS.disable);
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('merges a partial breakpoints override instead of replacing the map', () => {
+    const warn = warnOnce();
+    const { breakpoints } = normalizeOptions({ breakpoints: { lg: 1024 } });
+
+    expect(breakpoints.lg).toBe(1024);
+    expect(breakpoints.sm).toBe(DEFAULTS.breakpoints.sm);
+    expect(breakpoints.md).toBe(DEFAULTS.breakpoints.md);
+    expect(breakpoints.xl).toBe(DEFAULTS.breakpoints.xl);
+    expect(breakpoints.xxl).toBe(DEFAULTS.breakpoints.xxl);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it('never mutates the frozen default breakpoints', () => {
+    warnOnce();
+    normalizeOptions({ breakpoints: { lg: 1024 } });
+    expect(DEFAULTS.breakpoints.lg).toBe(992);
+  });
+
+  it('falls back per tier for a non-positive or non-numeric width', () => {
+    const warn = warnOnce();
+    const { breakpoints } = normalizeOptions({
+      breakpoints: { lg: 0, md: 'wide', xl: 1300 } as never,
+    });
+
+    expect(breakpoints.lg).toBe(DEFAULTS.breakpoints.lg);
+    expect(breakpoints.md).toBe(DEFAULTS.breakpoints.md);
+    expect(breakpoints.xl).toBe(1300);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('breakpoints.lg'));
   });
 
   it('accepts a disable predicate untouched', () => {

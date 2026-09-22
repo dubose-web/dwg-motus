@@ -7,7 +7,7 @@ import { isSupported } from './helpers/support.js';
 import { buildConfigs } from './observers/elementConfig.js';
 import { createObserver } from './observers/intersection.js';
 import { watch } from './observers/mutation.js';
-import type { DisableOption, MotusOptions, MotusUserOptions, ObserverHandle } from './types.js';
+import type { BreakpointName, MotusOptions, MotusUserOptions, ObserverHandle } from './types.js';
 import { normalizeOptions } from './validate.js';
 
 interface TrackedListener {
@@ -34,13 +34,26 @@ const collectElements = (): HTMLElement[] => [
   ...document.querySelectorAll<HTMLElement>(`[${ATTR}]`),
 ];
 
-export const isDisabled = (disable: DisableOption): boolean =>
-  document.documentElement.hasAttribute(DISABLED_ATTR) ||
-  disable === true ||
-  (disable === 'mobile' && detect.mobile()) ||
-  (disable === 'phone' && detect.phone()) ||
-  (disable === 'tablet' && detect.tablet()) ||
-  (typeof disable === 'function' && disable() === true);
+/**
+ * Takes the whole options object rather than just `disable`, because a tier
+ * name is meaningless without the breakpoint map it indexes into.
+ */
+export const isDisabled = (opts: MotusOptions): boolean => {
+  const { disable } = opts;
+
+  return (
+    document.documentElement.hasAttribute(DISABLED_ATTR) ||
+    disable === true ||
+    // A tier name means *below* that tier, so `'lg'` covers everything narrower.
+    (typeof disable === 'string' &&
+      disable in opts.breakpoints &&
+      detect.below(opts.breakpoints[disable as BreakpointName])) ||
+    (disable === 'mobile' && detect.mobile()) ||
+    (disable === 'phone' && detect.phone()) ||
+    (disable === 'tablet' && detect.tablet()) ||
+    (typeof disable === 'function' && disable() === true)
+  );
+};
 
 const initializeObservers = (): HTMLElement[] => {
   elements = collectElements();
@@ -102,7 +115,7 @@ const handleResize = (): void => {
 export const refresh = (): void => rebuild();
 
 export const refreshHard = (): void => {
-  if (isDisabled(options.disable)) {
+  if (isDisabled(options)) {
     disable();
     return;
   }
@@ -191,7 +204,7 @@ export const init = (settings?: MotusUserOptions): HTMLElement[] | undefined => 
 
   // Checked before the MutationObserver is installed: on a disabled page there
   // is no reason for every DOM mutation to run the disable path again.
-  if (isDisabled(options.disable)) {
+  if (isDisabled(options)) {
     disable();
     return undefined;
   }

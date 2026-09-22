@@ -36,7 +36,21 @@ export type CssEasingKeyword = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'eas
  */
 export type Easing = MotusEasingName | CssEasingKeyword | (string & {});
 
-export type DisableOption = boolean | 'phone' | 'tablet' | 'mobile' | (() => boolean);
+/** The Bootstrap-aligned tier names. `xs` is omitted — see `BREAKPOINTS`. */
+export type BreakpointName = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
+
+export type Breakpoints = Record<BreakpointName, number>;
+
+/**
+ * A tier name means *below* that tier, so it is inclusive and downward:
+ * `'lg'` disables everything narrower than the `lg` breakpoint.
+ *
+ * The `'phone' | 'tablet' | 'mobile'` keywords are the older device-class
+ * path — `matchMedia` pointer detection rather than width, and mutually
+ * exclusive, so `'tablet'` does not also cover phones.
+ */
+export type DisableOption =
+  boolean | BreakpointName | 'phone' | 'tablet' | 'mobile' | (() => boolean);
 
 export interface MotusOptions {
   /** Distance in px from the trigger point before an element animates. Default `120`. */
@@ -47,8 +61,10 @@ export interface MotusOptions {
   easing: Easing;
   /** Transition duration in ms. Default `400`. */
   duration: number;
-  /** Disable the library entirely, by device class, or via a predicate. Default `false`. */
+  /** Disable below a breakpoint, entirely, by device class, or via a predicate. Default `'lg'`. */
   disable: DisableOption;
+  /** Viewport widths behind the `disable` tier names. Merged over the defaults. */
+  breakpoints: Breakpoints;
   /** Animate only the first time an element enters the viewport. Default `false`. */
   once: boolean;
   /** Animate back out when scrolling away. Ignored when `once` is true. Default `false`. */
@@ -69,7 +85,14 @@ export interface MotusOptions {
   debounceDelay: number;
 }
 
-export type MotusUserOptions = Partial<MotusOptions>;
+/**
+ * `breakpoints` is deliberately `Partial` rather than all-or-nothing: overriding
+ * one tier must not force a consumer to restate the other four. `normalizeOptions`
+ * merges it over the defaults.
+ */
+export type MotusUserOptions = Partial<Omit<MotusOptions, 'breakpoints'>> & {
+  breakpoints?: Partial<Breakpoints>;
+};
 
 export interface MotusEventDetail {
   /**

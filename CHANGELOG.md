@@ -21,6 +21,17 @@ First public release.
   triggering on another element's position.
 - `motus:in` / `motus:out` events on `document`, with `data-motus-id` for element-scoped
   variants.
+- Responsive gating: `disable` accepts Bootstrap-aligned breakpoint tiers
+  (`'sm' | 'md' | 'lg' | 'xl' | 'xxl'`), where a tier name means _below_ that tier. Defaults to
+  `'lg'`, so animations do not run under 992px; pass `disable: false` to animate everywhere.
+  The `breakpoints` option (`{ sm: 576, md: 768, lg: 992, xl: 1200, xxl: 1400 }`) overrides the
+  widths one tier at a time, and omitted tiers keep their defaults.
+- `disable` also accepts `true`, `false`, a predicate, and the device-class keywords
+  `'phone' | 'tablet' | 'mobile'`, which detect a touch pointer rather than a width and are
+  mutually exclusive.
+- The library sets `data-motus-inactive` on `<html>` whenever it is not running — disabled,
+  destroyed, or missing IntersectionObserver — so the stylesheet reveals the elements it would
+  otherwise keep hidden until they animate.
 - Option validation: unknown keys and out-of-range values produce a single grouped warning.
 - ESM, CJS and UMD builds, with an `exports` map verified against Vite and webpack 5.
 

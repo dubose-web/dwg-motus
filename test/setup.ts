@@ -153,6 +153,17 @@ export const stubMatchMedia = (matching: string[] = []): void => {
 export const COARSE = '(pointer: coarse) and (hover: none)';
 export const COARSE_PHONE = '(pointer: coarse) and (hover: none) and (max-width: 767px)';
 
+/**
+ * `stubMatchMedia` matches query strings exactly, so tests have to reproduce
+ * what `detect.below()` builds character for character. Derived from the same
+ * arithmetic rather than hard-coded, so the two cannot drift.
+ */
+export const belowQuery = (width: number): string => `(max-width: ${width - 0.02}px)`;
+
+export const BELOW_SM = belowQuery(576);
+export const BELOW_MD = belowQuery(768);
+export const BELOW_LG = belowQuery(992);
+
 /** `isSupported()` feature-detects `intersectionRatio` on the prototype. */
 class FakeIntersectionObserverEntry {}
 Object.defineProperty(FakeIntersectionObserverEntry.prototype, 'intersectionRatio', {

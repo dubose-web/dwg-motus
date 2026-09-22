@@ -1,6 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import detect from '../../src/helpers/detector.js';
-import { COARSE, COARSE_PHONE, stubMatchMedia } from '../setup.js';
+import { BELOW_LG, belowQuery, COARSE, COARSE_PHONE, stubMatchMedia } from '../setup.js';
+
+describe('below()', () => {
+  it('matches when the viewport is under the breakpoint', () => {
+    stubMatchMedia([BELOW_LG]);
+    expect(detect.below(992)).toBe(true);
+  });
+
+  it('does not match when the viewport is over the breakpoint', () => {
+    stubMatchMedia([]);
+    expect(detect.below(992)).toBe(false);
+  });
+
+  it('subtracts 0.02 so fractional widths have no dead zone', () => {
+    // A 991.5px window must still count as below the 992px breakpoint, which
+    // `- 1` would get right but only by accident; `- 0.02` is the exact edge.
+    expect(belowQuery(992)).toBe('(max-width: 991.98px)');
+    stubMatchMedia([belowQuery(992)]);
+    expect(detect.below(992)).toBe(true);
+  });
+
+  it('honours a custom breakpoint width', () => {
+    stubMatchMedia([belowQuery(1024)]);
+    expect(detect.below(1024)).toBe(true);
+    expect(detect.below(992)).toBe(false);
+  });
+});
 
 describe('device detection', () => {
   it('reports a phone when coarse, hoverless and narrow', () => {

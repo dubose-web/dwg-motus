@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { destroy, init, refresh, refreshHard } from '../src/motus.js';
 import { DEFAULTS } from '../src/defaults.js';
 import {
+  BELOW_LG,
+  BELOW_MD,
+  BELOW_SM,
+  belowQuery,
   COARSE,
   COARSE_PHONE,
   MockIntersectionObserver,
@@ -261,25 +265,69 @@ describe('disable', () => {
     expect(init({ disable: 'phone' })).toHaveLength(1);
   });
 
-  it('marks <html> inactive so the CSS reveals the hidden elements', () => {
+  it('bails out below the default lg breakpoint', () => {
+    stubMatchMedia([BELOW_LG]);
     mount();
-    init({ disable: true });
+    expect(init()).toBeUndefined();
+  });
+
+  it('runs at the default breakpoint on a wide viewport', () => {
+    stubMatchMedia([]);
+    mount();
+    expect(init()).toHaveLength(1);
+  });
+
+  it('treats a tier name as "below that tier", not that tier alone', () => {
+    // 900px wide: under lg, over md. 'md' must not disable here.
+    stubMatchMedia([BELOW_LG]);
+    mount();
+    expect(init({ disable: 'md' })).toHaveLength(1);
+  });
+
+  it('disables for every tier at or above the viewport width', () => {
+    // 500px wide: under sm, md and lg alike.
+    stubMatchMedia([BELOW_SM, BELOW_MD, BELOW_LG]);
+    mount();
+    expect(init({ disable: 'sm' })).toBeUndefined();
+  });
+
+  it('honours a custom breakpoint width', () => {
+    stubMatchMedia([belowQuery(1400)]);
+    mount();
+    // Default lg (992) does not match at this width; moving lg to 1400 does.
+    expect(init({ breakpoints: { lg: 1400 } })).toBeUndefined();
+  });
+
+  it('keeps the other tiers when breakpoints is partially overridden', () => {
+    stubMatchMedia([BELOW_MD]);
+    mount();
+    expect(init({ disable: 'md', breakpoints: { lg: 1400 } })).toBeUndefined();
+  });
+
+  it('marks <html> inactive so the CSS reveals the hidden elements', () => {
+    stubMatchMedia([BELOW_LG]);
+    mount();
+    init();
 
     expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
   });
 
   it('clears the inactive attribute when a later init() is not disabled', () => {
+    stubMatchMedia([BELOW_LG]);
     mount();
-    init({ disable: true });
+    init();
     expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
 
-    expect(init({ disable: false })).toHaveLength(1);
+    // Re-initialising with the gate off must not stay wedged off.
+    stubMatchMedia([]);
+    expect(init()).toHaveLength(1);
     expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(false);
   });
 
   it('does not set the consumer kill switch, which would wedge init() off', () => {
+    stubMatchMedia([BELOW_LG]);
     mount();
-    init({ disable: true });
+    init();
 
     expect(document.documentElement.hasAttribute('data-motus-disabled')).toBe(false);
   });
@@ -320,12 +368,12 @@ describe('disable', () => {
 
 describe('refreshHard()', () => {
   it('brings the library back after an init-time disable', () => {
-    stubMatchMedia([COARSE]);
+    stubMatchMedia([BELOW_LG]);
     const els = mount();
-    expect(init({ disable: 'mobile' })).toBeUndefined();
+    expect(init()).toBeUndefined();
     expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
 
-    // The device signal no longer matches.
+    // The viewport widened past the breakpoint.
     stubMatchMedia([]);
     setRect(els[0]!, { top: 100, bottom: 300 });
     refreshHard();

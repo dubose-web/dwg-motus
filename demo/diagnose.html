@@ -75,7 +75,7 @@
     </main>
     <script src="_nav.js"></script>
     <script type="module">
-      import Motus from '/dist/motus.js';
+      import Motus, { DEFAULTS } from '/dist/motus.js';
 
       Motus.init();
 
@@ -90,6 +90,12 @@
         const cssLoaded = [...document.styleSheets].some((s) =>
           (s.href || '').includes('motus.css'),
         );
+
+        // The width gate: `disable` names a tier, which means "below that tier".
+        const tier = DEFAULTS.disable;
+        const tierWidth = DEFAULTS.breakpoints[tier];
+        const belowTier =
+          typeof tierWidth === 'number' && matchMedia(`(max-width: ${tierWidth - 0.02}px)`).matches;
 
         const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
         const noPref = matchMedia('(prefers-reduced-motion: no-preference)').matches;
@@ -107,6 +113,8 @@
           ['prefers-reduced-motion: no-preference', noPref, true],
           ['<html> still has .no-js', noJs, false],
           ['<html> has data-motus-disabled', disabledAttr, false],
+          ['viewport width', `${window.innerWidth}px`, `>= ${tierWidth}px`],
+          [`below the '${tier}' breakpoint`, belowTier, false],
           ['<body> got .motus-ready', ready, true],
           ['--motus-duration on <body>', duration || '(unset)', '400ms'],
           ['probe has .motus-init', probe.classList.contains('motus-init'), true],
@@ -148,6 +156,11 @@
           verdict = [
             'data-motus-disabled is set on <html>',
             'The library is switched off at the HTML level.',
+          ];
+        } else if (belowTier) {
+          verdict = [
+            `Viewport is below the '${tier}' breakpoint`,
+            `The window is ${window.innerWidth}px wide and motus is set to disable below ${tierWidth}px. This is the default. Widen the window and reload, or pass disable: false / a different tier to init().`,
           ];
         } else if (!ready) {
           verdict = [

@@ -92,7 +92,8 @@ Motus.init({
   once: false, // animate only the first time
   mirror: false, // animate back out when scrolling away
   anchorPlacement: 'top-bottom',
-  disable: false, // true | 'phone' | 'tablet' | 'mobile' | () => boolean
+  disable: 'lg', // below the lg breakpoint — see Responsive breakpoints
+  breakpoints: { sm: 576, md: 768, lg: 992, xl: 1200, xxl: 1400 },
   startEvent: 'DOMContentLoaded',
   initClassName: 'motus-init',
   animatedClassName: 'motus-animate',
@@ -103,6 +104,40 @@ Motus.init({
 ```
 
 Unrecognised keys and out-of-range values produce a single grouped `console.warn`, so a typo shows up immediately instead of silently doing nothing.
+
+### Responsive breakpoints
+
+**By default motus does not animate below 992px.** Many animations only read well at desktop
+width, so disabling outright is usually better than maintaining a parallel mobile set. Pass
+`disable: false` to animate everywhere.
+
+`disable` accepts a Bootstrap-aligned tier name, which means **below that tier** — it is
+inclusive and downward, so `'lg'` covers everything narrower than `lg`:
+
+| `disable` | Media query              | Disabled on                                                     |
+| --------- | ------------------------ | --------------------------------------------------------------- |
+| `'sm'`    | `(max-width: 575.98px)`  | small phones                                                    |
+| `'md'`    | `(max-width: 767.98px)`  | phones in portrait                                              |
+| `'lg'`    | `(max-width: 991.98px)`  | the above, plus phone landscape and tablet portrait _(default)_ |
+| `'xl'`    | `(max-width: 1199.98px)` | the above, plus tablet landscape                                |
+| `'xxl'`   | `(max-width: 1399.98px)` | the above, plus small laptops                                   |
+
+Override any tier individually — the rest keep their defaults:
+
+```js
+Motus.init({ disable: 'lg', breakpoints: { lg: 1024 } });
+```
+
+The `.98` is deliberate: a `max-width` derived from a `min-width` breakpoint must not leave a
+dead zone on fractional viewport widths.
+
+`disable` also accepts `true`, `false`, a `() => boolean` predicate, and the older device-class
+keywords `'phone' | 'tablet' | 'mobile'`. Those three detect a touch pointer via `matchMedia`
+rather than width, and are mutually exclusive — `'tablet'` does **not** also cover phones. Prefer
+a tier name unless you specifically want touch detection.
+
+The check runs once, at `init()`. A desktop window resized across the breakpoint keeps its
+existing state until something calls [`refreshHard()`](#api).
 
 ### 2. Mark up your elements
 
@@ -128,6 +163,13 @@ Any global option can be overridden per element:
 | `data-motus-id`               | scopes the `motus:in:<id>` event                       |
 
 Add `data-motus-disabled` to `<html>` to switch everything off in both CSS and JS — useful as a server-rendered kill switch.
+
+The library sets a second attribute, `data-motus-inactive`, on `<html>` whenever it is not
+running — disabled by `disable`, torn down by `destroy()`, or in a browser without
+IntersectionObserver. The stylesheet hides `[data-motus]` elements until they animate, so this
+is what reveals them when no JS will ever arrive to do it. Treat it as read-only: it is cleared
+on the next `init()`, and setting it yourself will be overwritten. Use `data-motus-disabled` for
+a kill switch.
 
 ---
 
@@ -159,11 +201,12 @@ With `data-motus-id="hero"` you also get `motus:in:hero`, fired _in addition to_
 ### TypeScript
 
 ```ts
-import Motus, { type MotusOptions, type AnchorPlacement } from 'dwg-motus';
+import Motus, { type MotusOptions, type AnchorPlacement, type BreakpointName } from 'dwg-motus';
 
 Motus.init({
   anchorPlacement: 'center-center', // union-typed, autocompletes
-  disable: 'phone',
+  disable: 'lg', // BreakpointName | 'phone' | 'tablet' | 'mobile' | boolean | () => boolean
+  breakpoints: { lg: 1024 }, // partial — the other tiers keep their defaults
 });
 ```
 
