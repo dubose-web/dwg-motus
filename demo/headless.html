@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Headless — dwg-motus</title>
+    <link rel="stylesheet" href="demo.css" />
+    <script src="_nav.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Headless</h1>
+      <p class="lede">
+        No motus stylesheet is loaded here — only the JS. The library toggles classes and fires
+        events; the animation CSS is entirely hand-written below.
+      </p>
+      <nav></nav>
+    </header>
+    <main>
+      <div class="spacer">↓ these use bespoke CSS, not the shipped stylesheets ↓</div>
+      <div class="grid">
+        <div class="box custom" data-motus="anything">custom rotate-in</div>
+        <div class="box custom" data-motus="anything">custom rotate-in</div>
+        <div class="box custom" data-motus="anything">custom rotate-in</div>
+      </div>
+      <div class="spacer"></div>
+    </main>
+    <style>
+      /* Hand-rolled animation driven by the motus-animate class. */
+      @media (prefers-reduced-motion: no-preference) {
+        .custom {
+          opacity: 0;
+          transform: rotate(-8deg) translateY(40px);
+          transition:
+            opacity 600ms ease,
+            transform 600ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .custom.motus-animate {
+          opacity: 1;
+          transform: none;
+        }
+      }
+    </style>
+    <pre id="log"></pre>
+    <script type="module">
+      // Note: no CSS import at all — the root entry has no stylesheet side effects.
+      import Motus from '/dist/motus.js';
+
+      const log = document.getElementById('log');
+      document.addEventListener('motus:in', ({ detail }) => {
+        log.textContent = `in: ${detail.node.textContent}\n` + log.textContent.slice(0, 600);
+      });
+
+      Motus.init();
+    </script>
+  </body>
+</html>

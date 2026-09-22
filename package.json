@@ -1,0 +1,123 @@
+{
+  "name": "dwg-motus",
+  "version": "1.0.0",
+  "description": "Animate on scroll via IntersectionObserver — modular, typed, zero dependencies",
+  "author": "DuBose Web",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dubose-web/dwg-motus.git"
+  },
+  "homepage": "https://github.com/dubose-web/dwg-motus#readme",
+  "bugs": {
+    "url": "https://github.com/dubose-web/dwg-motus/issues"
+  },
+  "keywords": [
+    "animate on scroll",
+    "scroll animation",
+    "intersectionobserver",
+    "aos",
+    "motus",
+    "css animation",
+    "reveal"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "scss",
+    "README.md",
+    "CUSTOMIZATION.md",
+    "LICENSE"
+  ],
+  "main": "./dist/motus.cjs",
+  "module": "./dist/motus.js",
+  "types": "./dist/motus.d.ts",
+  "unpkg": "./dist/motus.umd.js",
+  "jsdelivr": "./dist/motus.umd.js",
+  "exports": {
+    ".": {
+      "types": {
+        "import": "./dist/motus.d.ts",
+        "require": "./dist/motus.d.cts"
+      },
+      "import": "./dist/motus.js",
+      "require": "./dist/motus.cjs"
+    },
+    "./headless": {
+      "types": {
+        "import": "./dist/motus.d.ts",
+        "require": "./dist/motus.d.cts"
+      },
+      "import": "./dist/motus.js",
+      "require": "./dist/motus.cjs"
+    },
+    "./motus.css": "./dist/css/motus.css",
+    "./css/*.css": "./dist/css/*.css",
+    "./scss/*.scss": "./scss/*.scss",
+    "./scss/*": "./scss/*",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json",
+    "./scss": "./scss/motus.scss"
+  },
+  "scripts": {
+    "dev": "NODE_ENV=development npm-run-all2 build:css --parallel dev:css dev:js",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm-run-all2 clean build:js build:css",
+    "build:js": "rollup -c",
+    "build:css": "node scripts/build-css.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src test && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build && npm run check:pkg",
+    "check:pkg": "publint && attw --pack .",
+    "dev:js": "NODE_ENV=development rollup -c --watch",
+    "dev:css": "NODE_ENV=development node scripts/build-css.mjs --watch"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@eslint/js": "^10.0.1",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "autoprefixer": "^10.6.1",
+    "cssnano": "^7.1.9",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "happy-dom": "^20.14.5",
+    "npm-run-all2": "^8.0.4",
+    "postcss": "^8.5.28",
+    "prettier": "^3.9.8",
+    "publint": "^0.3.24",
+    "rollup": "^4.63.4",
+    "rollup-plugin-dts": "^6.5.1",
+    "rollup-plugin-livereload": "^2.0.5",
+    "rollup-plugin-serve": "^3.0.0",
+    "sass": "^1.104.1",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^4.1.11"
+  },
+  "style": "./dist/css/motus.css",
+  "sass": "./scss/motus.scss",
+  "browserslist": [
+    "chrome >= 51",
+    "firefox >= 55",
+    "safari >= 12.1",
+    "edge >= 15",
+    "not dead"
+  ]
+}

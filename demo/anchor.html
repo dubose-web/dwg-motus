@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Anchor placements — dwg-motus</title>
+    <link rel="stylesheet" href="/dist/css/motus.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script src="_nav.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Anchor placements</h1>
+      <p class="lede">
+        Every element below is triggered by the blue bar, not by itself. Each column uses a
+        different <code>data-motus-anchor-placement</code>.
+      </p>
+      <nav></nav>
+    </header>
+    <main></main>
+    <div class="anchor-target" id="trigger">#trigger — all animations below key off this bar</div>
+    <main>
+      <div class="spacer">↓ scroll ↓</div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="top-bottom"
+      >
+        top-bottom
+      </div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="center-bottom"
+      >
+        center-bottom
+      </div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="bottom-bottom"
+      >
+        bottom-bottom
+      </div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="top-center"
+      >
+        top-center
+      </div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="center-center"
+      >
+        center-center
+      </div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="bottom-center"
+      >
+        bottom-center
+      </div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="top-top"
+      >
+        top-top
+      </div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="center-top"
+      >
+        center-top
+      </div>
+      <div class="spacer"></div>
+      <div
+        class="box"
+        data-motus="fade-up"
+        data-motus-anchor="#trigger"
+        data-motus-anchor-placement="bottom-top"
+      >
+        bottom-top
+      </div>
+    </main>
+    <script type="module">
+      import Motus from '/dist/motus.js';
+      Motus.init({ anchorPlacement: 'top-bottom' });
+    </script>
+  </body>
+</html>

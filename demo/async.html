@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dynamic DOM — dwg-motus</title>
+    <link rel="stylesheet" href="/dist/css/motus.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script src="_nav.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Dynamic DOM</h1>
+      <p class="lede">
+        The MutationObserver picks up elements added after <code>init()</code>. Adding 20 at once
+        rebuilds the observers exactly once.
+      </p>
+      <nav></nav>
+    </header>
+    <main>
+      <p>
+        <button id="add">Add 6 more elements</button> <button id="burst">Add 20 at once</button>
+      </p>
+      <div class="grid" id="target">
+        <div class="box" data-motus="fade-up">initial</div>
+      </div>
+      <div class="spacer">↓ scroll to reveal what you added ↓</div>
+      <div class="spacer"></div>
+    </main>
+    <pre id="log"></pre>
+    <script type="module">
+      import Motus from '/dist/motus.js';
+
+      const target = document.getElementById('target');
+      const log = document.getElementById('log');
+      let n = 0;
+
+      const add = (count) => {
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < count; i += 1) {
+          const el = document.createElement('div');
+          el.className = 'box';
+          el.dataset.motus = 'fade-up';
+          el.textContent = `added #${(n += 1)}`;
+          frag.appendChild(el);
+        }
+        target.appendChild(frag);
+      };
+
+      document.getElementById('add').addEventListener('click', () => add(6));
+      document.getElementById('burst').addEventListener('click', () => add(20));
+
+      document.addEventListener('motus:in', ({ detail }) => {
+        log.textContent = `in: ${detail.node.textContent}\n` + log.textContent.slice(0, 600);
+      });
+
+      Motus.init();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offset — dwg-motus</title>
+    <link rel="stylesheet" href="/dist/css/motus.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script src="_nav.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Offset</h1>
+      <p class="lede">
+        <code>data-motus-offset</code> shifts the trigger line. A larger offset means the element
+        must travel further up the viewport before it animates.
+      </p>
+      <nav></nav>
+    </header>
+    <main>
+      <div class="spacer">↓ scroll slowly and watch when each fires ↓</div>
+      <div class="spacer"></div>
+      <div class="box" data-motus="fade-up" data-motus-offset="-200">offset=-200</div>
+      <div class="spacer"></div>
+      <div class="box" data-motus="fade-up" data-motus-offset="-100">offset=-100</div>
+      <div class="spacer"></div>
+      <div class="box" data-motus="fade-up" data-motus-offset="0">offset=0</div>
+      <div class="spacer"></div>
+      <div class="box" data-motus="fade-up" data-motus-offset="120">offset=120</div>
+      <div class="spacer"></div>
+      <div class="box" data-motus="fade-up" data-motus-offset="300">offset=300</div>
+      <div class="spacer"></div>
+      <div class="box" data-motus="fade-up" data-motus-offset="500">offset=500</div>
+    </main>
+    <script type="module">
+      import Motus from '/dist/motus.js';
+      Motus.init();
+    </script>
+  </body>
+</html>
