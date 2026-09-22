@@ -318,36 +318,6 @@ npm run test:pack  # pack, install into a throwaway project, assert it works
 npm run check:pkg  # publint + are-the-types-wrong
 ```
 
-### Releasing
-
-Publishing runs from CI on a version tag, using npm
-[trusted publishing](https://docs.npmjs.com/trusted-publishers) — there is no npm token stored
-anywhere, and npm generates a provenance attestation automatically, linking the published tarball
-to the exact commit and workflow that built it.
-
-Work lands on `develop`. `main` is protected and takes pull requests only, so the version bump is
-made on `develop` and the tag is cut from `main` after the merge:
-
-```sh
-# on develop — bump the version without tagging yet
-npm version patch --no-git-tag-version   # or minor / major
-git commit -am "Release v1.0.1"
-git push
-
-# open a pull request from develop to main and merge it
-
-git checkout main && git pull
-git tag v1.0.1
-git push origin v1.0.1                   # this is what triggers the release
-```
-
-Tags are not covered by the branch protection, so the final push is what starts the publish.
-
-The workflow refuses to publish if the tagged commit is not reachable from `main`, or if the tag
-and `package.json` disagree. It fails loudly rather than skipping, so a release that did not happen
-is never mistaken for one that did. `prepublishOnly` then runs lint, typecheck, tests, the build,
-`check:pkg` and the package smoke test before anything reaches the registry.
-
 ---
 
 ## License
