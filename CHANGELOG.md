@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+### Documentation
+
+- The README no longer documents the maintainers' release process.
+
 ## 1.0.0
 
 First public release.

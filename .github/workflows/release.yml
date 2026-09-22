@@ -62,13 +62,4 @@ jobs:
       # prepublishOnly runs lint, typecheck, tests, build, check:pkg and the
       # package smoke test. Keeping the gate there rather than duplicating it
       # in YAML means a local publish is protected by exactly the same checks.
-      #
-      # TEMPORARY, for the first publish only. npm cannot configure a trusted
-      # publisher for a package that does not exist yet, so 1.0.0 authenticates
-      # with NPM_TOKEN: npm tries OIDC first and falls back to the token when no
-      # trusted publisher matches. `--provenance` is explicit because only the
-      # OIDC path turns it on by default. Once the trusted publisher is set up,
-      # delete the token and the secret, and drop the env block and the flag.
-      - run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish

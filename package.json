@@ -1,6 +1,6 @@
 {
   "name": "@duboseweb/motus",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Animate on scroll via IntersectionObserver — modular, typed, zero dependencies",
   "author": "DuBose Web",
   "license": "MIT",
