@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      document.documentElement.classList.remove('no-js');
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Diagnose — dwg-motus</title>
+    <link rel="stylesheet" href="/dist/css/motus.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <style>
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 0 0 24px;
+      }
+      td,
+      th {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 500;
+        width: 40%;
+      }
+      td code {
+        font-family: ui-monospace, monospace;
+        font-size: 13px;
+      }
+      .ok {
+        color: #3fb950;
+      }
+      .bad {
+        color: #f85149;
+        font-weight: 600;
+      }
+      .warn {
+        color: #d29922;
+      }
+      #verdict {
+        padding: 16px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        margin-bottom: 24px;
+      }
+      #verdict h2 {
+        margin: 0 0 8px;
+        font-size: 1.1rem;
+      }
+      #verdict p {
+        margin: 0;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Diagnose</h1>
+      <p class="lede">
+        Load this page in the browser where animations aren't working. It reports why.
+      </p>
+      <nav></nav>
+    </header>
+    <main>
+      <div id="verdict">running…</div>
+      <table id="report"></table>
+      <div class="spacer">↓ this box should animate when you scroll to it ↓</div>
+      <div class="box" data-motus="fade-up" id="probe">probe element</div>
+      <div class="spacer"></div>
+    </main>
+    <script src="_nav.js"></script>
+    <script type="module">
+      import Motus from '/dist/motus.js';
+
+      Motus.init();
+
+      // Give the ready sequence a few frames to complete.
+      setTimeout(() => {
+        const html = document.documentElement;
+        const probe = document.getElementById('probe');
+        const cs = getComputedStyle(probe);
+        const els = [...document.querySelectorAll('[data-motus]')];
+
+        // Did the shipped stylesheet actually load and apply?
+        const cssLoaded = [...document.styleSheets].some((s) =>
+          (s.href || '').includes('motus.css'),
+        );
+
+        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const noPref = matchMedia('(prefers-reduced-motion: no-preference)').matches;
+        const noJs = html.classList.contains('no-js');
+        const disabledAttr = html.hasAttribute('data-motus-disabled');
+        const ready = document.body.classList.contains('motus-ready');
+        const duration = getComputedStyle(document.body)
+          .getPropertyValue('--motus-duration')
+          .trim();
+
+        const rows = [
+          ['IntersectionObserver supported', typeof IntersectionObserver === 'function', true],
+          ['motus.css stylesheet loaded', cssLoaded, true],
+          ['prefers-reduced-motion: reduce', reduce, false],
+          ['prefers-reduced-motion: no-preference', noPref, true],
+          ['<html> still has .no-js', noJs, false],
+          ['<html> has data-motus-disabled', disabledAttr, false],
+          ['<body> got .motus-ready', ready, true],
+          ['--motus-duration on <body>', duration || '(unset)', '400ms'],
+          ['probe has .motus-init', probe.classList.contains('motus-init'), true],
+          ['probe transition-duration', cs.transitionDuration, '0.4s'],
+          ['probe opacity (0 while offscreen)', cs.opacity, '0'],
+          ['elements found', els.length, els.length > 0 ? els.length : '>0'],
+        ];
+
+        document.getElementById('report').innerHTML =
+          '<tr><th>check</th><th>value</th><th>expected</th></tr>' +
+          rows
+            .map(([label, value, expected]) => {
+              const bad = String(value) !== String(expected);
+              const cls = bad ? 'bad' : 'ok';
+              return `<tr><th>${label}</th><td class="${cls}"><code>${value}</code></td><td><code>${expected}</code></td></tr>`;
+            })
+            .join('');
+
+        // Rank the causes: the first match is the one that actually blocks animation.
+        let verdict;
+        if (typeof IntersectionObserver !== 'function') {
+          verdict = ['No IntersectionObserver', 'This browser cannot run the library at all.'];
+        } else if (!cssLoaded) {
+          verdict = [
+            'Stylesheet did not load',
+            'The JS is running but motus.css was not applied. Check the network tab for /dist/css/motus.css.',
+          ];
+        } else if (reduce) {
+          verdict = [
+            'Reduced motion is enabled',
+            'Animations are intentionally disabled. In Firefox this is caused by the OS "Reduce motion" accessibility setting, or by privacy.resistFingerprinting / ui.prefersReducedMotion in about:config. This is correct, accessible behaviour — not a bug.',
+          ];
+        } else if (noJs) {
+          verdict = [
+            'The .no-js class was never removed',
+            'Every animation is gated behind html:not(.no-js). The inline script that removes it did not run — most often an extension or Enhanced Tracking Protection blocked _nav.js.',
+          ];
+        } else if (disabledAttr) {
+          verdict = [
+            'data-motus-disabled is set on <html>',
+            'The library is switched off at the HTML level.',
+          ];
+        } else if (!ready) {
+          verdict = [
+            'The ready sequence never completed',
+            'init() ran but <body> never got .motus-ready. Check the console for errors.',
+          ];
+        } else if (cs.transitionDuration === '0s') {
+          verdict = [
+            'Transitions are disabled',
+            'The element has no transition duration, so it will jump rather than animate.',
+          ];
+        } else {
+          verdict = [
+            'Everything checks out',
+            'The library is working here. If animations still look wrong, hard-reload (Cmd+Shift+R) to clear a cached build.',
+          ];
+        }
+
+        document.getElementById('verdict').innerHTML = `<h2>${verdict[0]}</h2><p>${verdict[1]}</p>`;
+      }, 250);
+    </script>
+  </body>
+</html>

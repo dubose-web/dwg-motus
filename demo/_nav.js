@@ -1,6 +1,5 @@
-// Shared demo chrome: nav links plus the no-js guard the README documents.
-document.documentElement.classList.remove('no-js');
-
+// Shared demo nav. The no-js guard lives inline in each page's <head>, where
+// nothing can block it.
 const PAGES = [
   ['index.html', 'Basics'],
   ['anchor.html', 'Anchors'],
@@ -8,6 +7,7 @@ const PAGES = [
   ['once.html', 'Once & mirror'],
   ['async.html', 'Dynamic DOM'],
   ['headless.html', 'Headless'],
+  ['diagnose.html', 'Diagnose'],
 ];
 
 const here = location.pathname.split('/').pop() || 'index.html';
