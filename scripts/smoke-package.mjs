@@ -5,7 +5,7 @@
  * publint and attw check the shape of a package — its exports map, its type
  * resolution. Neither would have caught source maps that pointed at files the
  * package does not contain, and neither proves that
- * `@use 'dwg-motus/scss/core'` actually resolves. This does.
+ * `@use '@duboseweb/motus/scss/core'` actually resolves. This does.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -76,7 +76,7 @@ try {
   console.log('installing into a throwaway project…\n');
   npm(['install', tarball, '--no-audit', '--no-fund', '--prefer-offline'], consumer);
 
-  const installed = join(consumer, 'node_modules', 'dwg-motus');
+  const installed = join(consumer, 'node_modules', '@duboseweb', 'motus');
   const manifest = walk(installed);
 
   // ---- what ships -------------------------------------------------------
@@ -146,7 +146,7 @@ try {
       [
         '--input-type=module',
         '-e',
-        `import M from 'dwg-motus';
+        `import M from '@duboseweb/motus';
          if (Object.keys(M).sort().join(',') !== '${API}') throw new Error('keys: ' + Object.keys(M));
          if (!Object.isFrozen(M)) throw new Error('not frozen');
          console.log('frozen, 4 methods');`,
@@ -160,7 +160,7 @@ try {
     const out = node(
       [
         '-e',
-        `const M = require('dwg-motus');
+        `const M = require('@duboseweb/motus');
          const api = M.default ?? M;
          if (Object.keys(api).sort().join(',') !== '${API}') throw new Error('keys: ' + Object.keys(api));
          console.log('4 methods');`,
@@ -186,8 +186,8 @@ try {
 
   check('CSS subpaths resolve through the exports map', () => {
     const paths = [
-      'dwg-motus/motus.css',
-      ...['core', 'fade', 'zoom', 'slide', 'flip'].map((n) => `dwg-motus/css/${n}.css`),
+      '@duboseweb/motus/motus.css',
+      ...['core', 'fade', 'zoom', 'slide', 'flip'].map((n) => `@duboseweb/motus/css/${n}.css`),
     ];
     node(['-e', `for (const p of ${JSON.stringify(paths)}) require.resolve(p);`], consumer);
     return `${paths.length} paths`;
@@ -199,9 +199,9 @@ try {
     // loadPaths, not the exports map: this is the Dart Sass workflow that
     // bypasses `exports` entirely, so it exercises the real on-disk layout.
     const css = sass.compileString(
-      `@use 'dwg-motus/scss/config' with ($motus-distance: 250px);
-       @use 'dwg-motus/scss/core';
-       @use 'dwg-motus/scss/animations/fade';`,
+      `@use '@duboseweb/motus/scss/config' with ($motus-distance: 250px);
+       @use '@duboseweb/motus/scss/core';
+       @use '@duboseweb/motus/scss/animations/fade';`,
       { loadPaths: [join(consumer, 'node_modules')], style: 'expanded' },
     ).css;
 
@@ -213,7 +213,7 @@ try {
   });
 
   check('the full SCSS bundle compiles', () => {
-    const css = sass.compileString(`@use 'dwg-motus/scss/motus';`, {
+    const css = sass.compileString(`@use '@duboseweb/motus/scss/motus';`, {
       loadPaths: [join(consumer, 'node_modules')],
       style: 'expanded',
     }).css;

@@ -31,12 +31,12 @@ The original approach to scroll animation is a `scroll` listener that measures e
 ## Installation
 
 ```sh
-npm install dwg-motus
+npm install @duboseweb/motus
 ```
 
 ```js
-import Motus from 'dwg-motus';
-import 'dwg-motus/motus.css';
+import Motus from '@duboseweb/motus';
+import '@duboseweb/motus/motus.css';
 
 Motus.init();
 ```
@@ -48,16 +48,16 @@ The JS entry has **no stylesheet side effects** — CSS is always an explicit im
 `core.css` is required. Add only the families you actually reference:
 
 ```js
-import 'dwg-motus/css/core.css';
-import 'dwg-motus/css/fade.css';
+import '@duboseweb/motus/css/core.css';
+import '@duboseweb/motus/css/fade.css';
 // zoom.css, slide.css and flip.css are never shipped to the browser
 ```
 
 ### From a CDN
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/dwg-motus/dist/css/motus.css" />
-<script src="https://unpkg.com/dwg-motus/dist/motus.umd.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@duboseweb/motus/dist/css/motus.css" />
+<script src="https://unpkg.com/@duboseweb/motus/dist/motus.umd.js"></script>
 <script>
   Motus.init();
 </script>
@@ -68,11 +68,11 @@ import 'dwg-motus/css/fade.css';
 The Sass sources ship with the package, so you can override the translate distance and compile only what you need:
 
 ```scss
-@use 'dwg-motus/scss/config' with (
+@use '@duboseweb/motus/scss/config' with (
   $motus-distance: 200px
 );
-@use 'dwg-motus/scss/core';
-@use 'dwg-motus/scss/animations/fade';
+@use '@duboseweb/motus/scss/core';
+@use '@duboseweb/motus/scss/animations/fade';
 ```
 
 ---
@@ -82,7 +82,7 @@ The Sass sources ship with the package, so you can override the translate distan
 ### 1. Initialise
 
 ```js
-import Motus from 'dwg-motus';
+import Motus from '@duboseweb/motus';
 
 Motus.init({
   offset: 120, // px before the trigger point
@@ -201,7 +201,11 @@ With `data-motus-id="hero"` you also get `motus:in:hero`, fired _in addition to_
 ### TypeScript
 
 ```ts
-import Motus, { type MotusOptions, type AnchorPlacement, type BreakpointName } from 'dwg-motus';
+import Motus, {
+  type MotusOptions,
+  type AnchorPlacement,
+  type BreakpointName,
+} from '@duboseweb/motus';
 
 Motus.init({
   anchorPlacement: 'center-center', // union-typed, autocompletes

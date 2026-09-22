@@ -69,12 +69,12 @@ Motus.init({ easing: 'cubic-bezier(.25, .25, .75, .75)' });
 `$motus-distance` controls how far `fade-*` and `zoom-*` elements translate (default `100px`). Slides always move 100% of their own size and ignore it.
 
 ```scss
-@use 'dwg-motus/scss/config' with (
+@use '@duboseweb/motus/scss/config' with (
   $motus-distance: 200px
 );
-@use 'dwg-motus/scss/core';
-@use 'dwg-motus/scss/animations/fade';
-@use 'dwg-motus/scss/animations/zoom';
+@use '@duboseweb/motus/scss/core';
+@use '@duboseweb/motus/scss/animations/fade';
+@use '@duboseweb/motus/scss/animations/zoom';
 ```
 
 Configure `config` **before** any family is loaded — that is a Sass requirement for `!default` variables, not a quirk of this library.
@@ -84,7 +84,7 @@ Configure `config` **before** any family is loaded — that is a Sass requiremen
 Skip the motus stylesheets entirely and let the library drive Animate.css class names:
 
 ```js
-import Motus from 'dwg-motus';
+import Motus from '@duboseweb/motus';
 import 'animate.css';
 
 Motus.init({
@@ -114,7 +114,7 @@ You will usually also want:
 Import the JS and no CSS at all. The library adds `motus-init` on setup and `motus-animate` on entry, and fires `motus:in` / `motus:out` — everything visual is yours:
 
 ```js
-import Motus from 'dwg-motus'; // no stylesheet import
+import Motus from '@duboseweb/motus'; // no stylesheet import
 Motus.init({ initClassName: false });
 ```
 
