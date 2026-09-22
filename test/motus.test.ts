@@ -261,6 +261,39 @@ describe('disable', () => {
     expect(init({ disable: 'phone' })).toHaveLength(1);
   });
 
+  it('marks <html> inactive so the CSS reveals the hidden elements', () => {
+    mount();
+    init({ disable: true });
+
+    expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
+  });
+
+  it('clears the inactive attribute when a later init() is not disabled', () => {
+    mount();
+    init({ disable: true });
+    expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
+
+    expect(init({ disable: false })).toHaveLength(1);
+    expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(false);
+  });
+
+  it('does not set the consumer kill switch, which would wedge init() off', () => {
+    mount();
+    init({ disable: true });
+
+    expect(document.documentElement.hasAttribute('data-motus-disabled')).toBe(false);
+  });
+
+  it('marks <html> inactive when IntersectionObserver is missing', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubGlobal('IntersectionObserver', undefined);
+    mount();
+
+    expect(init()).toBeUndefined();
+    expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
+    expect(warn).toHaveBeenCalled();
+  });
+
   it('leaves data-motus attributes on the markup', () => {
     const els = mount();
     init();
@@ -286,6 +319,25 @@ describe('disable', () => {
 });
 
 describe('refreshHard()', () => {
+  it('brings the library back after an init-time disable', () => {
+    stubMatchMedia([COARSE]);
+    const els = mount();
+    expect(init({ disable: 'mobile' })).toBeUndefined();
+    expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
+
+    // The device signal no longer matches.
+    stubMatchMedia([]);
+    setRect(els[0]!, { top: 100, bottom: 300 });
+    refreshHard();
+    settleFrames();
+
+    // Not just un-flagged — actually observing and animating again.
+    expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(false);
+    expect(document.body.classList.contains('motus-ready')).toBe(true);
+    expect(els[0]!.classList.contains('motus-init')).toBe(true);
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
+  });
+
   it('disables when the page has become disabled', () => {
     mount();
     init();

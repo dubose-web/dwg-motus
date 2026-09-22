@@ -5,7 +5,7 @@
 /// fade-up-right, fade-up-left, fade-down-right, fade-down-left
 
 @media screen and (prefers-reduced-motion: no-preference) {
-  html:not(.no-js):not([data-motus-disabled]) {
+  html:not(.no-js):not([data-motus-disabled]):not([data-motus-inactive]) {
     // The selector is doubled on purpose: it raises specificity so the family
     // base rule outranks a single-attribute override from consuming CSS.
     [data-motus^='fade'][data-motus^='fade'] {

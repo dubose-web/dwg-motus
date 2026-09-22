@@ -65,6 +65,12 @@ describe('accessibility contract', () => {
     const css = compile(family);
     expect(css).toContain('html:not(.no-js):not([data-motus-disabled])');
   });
+
+  it.each(FAMILIES)('%s reveals its elements when the library is inactive', (family) => {
+    // Without this the hidden initial state outlives a disabled library and
+    // the page renders blank. `disable()` sets the attribute; see motus.ts.
+    expect(compile(family)).toContain(':not([data-motus-inactive])');
+  });
 });
 
 describe('specificity contract', () => {

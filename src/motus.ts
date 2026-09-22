@@ -1,4 +1,4 @@
-import { ATTR, CLASS_READY, DISABLED_ATTR, LOG_PREFIX } from './constants.js';
+import { ATTR, CLASS_READY, DISABLED_ATTR, INACTIVE_ATTR, LOG_PREFIX } from './constants.js';
 import { DEFAULTS } from './defaults.js';
 import { debounce } from './helpers/debounce.js';
 import detect from './helpers/detector.js';
@@ -106,6 +106,20 @@ export const refreshHard = (): void => {
     disable();
     return;
   }
+
+  /**
+   * Coming back from disabled is not a rebuild. When `init()` bailed at the
+   * gate it returned before setting `initialized`, installing the mutation
+   * observer or binding any listener, so `rebuild()` would no-op here. Re-run
+   * `init()` with the options already in hand — they are normalised, so the
+   * second pass revalidates cleanly and warns about nothing.
+   */
+  if (!initialized) {
+    init(options);
+    return;
+  }
+
+  document.documentElement.removeAttribute(INACTIVE_ATTR);
   rebuild();
 };
 
@@ -115,6 +129,11 @@ export const refreshHard = (): void => {
  * markup survives and `init()` works again afterwards.
  */
 export const disable = (): void => {
+  // The CSS hides every [data-motus] element until it animates. With the
+  // library off, nothing will ever add that class, so this attribute is what
+  // stops the page from rendering blank.
+  document.documentElement.setAttribute(INACTIVE_ATTR, '');
+
   mutationObs?.disconnect();
   mutationObs = null;
 
@@ -156,10 +175,15 @@ export const init = (settings?: MotusUserOptions): HTMLElement[] | undefined => 
 
   options = normalizeOptions(settings);
 
+  // Cleared before the gate below can set it again, so re-initialising with
+  // different options is not permanently poisoned by the last run.
+  document.documentElement.removeAttribute(INACTIVE_ATTR);
+
   if (!isSupported()) {
     console.warn(
       `${LOG_PREFIX} IntersectionObserver is not supported in this browser; animations are disabled.`,
     );
+    document.documentElement.setAttribute(INACTIVE_ATTR, '');
     return undefined;
   }
 

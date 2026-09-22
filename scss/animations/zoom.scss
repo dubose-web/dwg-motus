@@ -4,7 +4,7 @@
 /// zoom-out, zoom-out-up, zoom-out-down, zoom-out-left, zoom-out-right
 
 @media screen and (prefers-reduced-motion: no-preference) {
-  html:not(.no-js):not([data-motus-disabled]) {
+  html:not(.no-js):not([data-motus-disabled]):not([data-motus-inactive]) {
     [data-motus^='zoom'][data-motus^='zoom'] {
       opacity: 0;
       transition-property: opacity, transform;

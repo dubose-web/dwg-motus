@@ -192,6 +192,7 @@ beforeEach(() => {
   stubMatchMedia([]);
 
   document.documentElement.removeAttribute('data-motus-disabled');
+  document.documentElement.removeAttribute('data-motus-inactive');
   document.documentElement.className = '';
   document.body.innerHTML = '';
   document.body.className = '';

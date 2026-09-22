@@ -6,18 +6,20 @@ The JavaScript never knows animation names — it only toggles `motus-animate`. 
 
 ```css
 @media (prefers-reduced-motion: no-preference) {
-  [data-motus='rotate-in'] {
-    opacity: 0;
-    transform-origin: bottom left;
-    transform: rotate(-14deg) scale(0.96);
-    transition:
-      opacity 500ms ease,
-      transform 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
+  html:not(.no-js):not([data-motus-disabled]):not([data-motus-inactive]) {
+    [data-motus='rotate-in'] {
+      opacity: 0;
+      transform-origin: bottom left;
+      transform: rotate(-14deg) scale(0.96);
+      transition:
+        opacity 500ms ease,
+        transform 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
 
-  [data-motus='rotate-in'].motus-animate {
-    opacity: 1;
-    transform: none;
+    [data-motus='rotate-in'].motus-animate {
+      opacity: 1;
+      transform: none;
+    }
   }
 }
 ```
@@ -26,7 +28,18 @@ The JavaScript never knows animation names — it only toggles `motus-animate`. 
 <div data-motus="rotate-in"></div>
 ```
 
-Keep the `prefers-reduced-motion` wrapper. Without it, anyone with reduced motion enabled is left looking at an element stuck at `opacity: 0`.
+Both wrappers matter, and for the same reason: every one of them is an escape route out of the
+hidden `opacity: 0` state, for a visitor whose animation is never going to run.
+
+- **`prefers-reduced-motion`** — someone who asked for reduced motion.
+- **`.no-js`** — the script never executed.
+- **`[data-motus-disabled]`** — the consumer's kill switch.
+- **`[data-motus-inactive]`** — the library set this on `<html>` because it is not running:
+  disabled by `disable` (which by default is on below 992px), torn down by `destroy()`, or in a
+  browser without IntersectionObserver.
+
+Miss one and the affected visitors are left looking at a blank space where your content should
+be. The shipped families use exactly this selector; custom animations need it too.
 
 Two things make that read as a rotation rather than a drift: `transform-origin` gives it a
 pivot, and there is no `translate` competing with it. A few degrees of tilt alongside a vertical
