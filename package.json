@@ -109,7 +109,7 @@
     "chrome >= 51",
     "firefox >= 55",
     "safari >= 12.1",
-    "edge >= 15",
+    "edge >= 79",
     "not dead"
   ]
 }

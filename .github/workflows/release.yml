@@ -23,9 +23,12 @@ jobs:
           # tagged commit is reachable from main, which a shallow clone cannot.
           fetch-depth: 0
 
+      # Trusted publishing needs npm 11.5.1+. Node 22 still bundles npm 10,
+      # which cannot exchange the OIDC token and fails the publish; Node 24
+      # bundles npm 11.
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
 

@@ -1,27 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Fixed
-
-- A rebuild no longer re-fires `motus:in` for elements already on screen. `refresh()`, a
-  height-changing resize and every MutationObserver batch rebuild the element configs, and
-  the replayed observer records then re-animated everything already visible. A settled
-  `once` element is also no longer re-observed, and a mirrored element already in view keeps
-  firing `motus:out` when it leaves.
-
-### Removed
-
-**Breaking.** Each of these was undocumented and unused; runtime behaviour is unchanged.
-
-- The `dwg-motus/headless` subpath export. It resolved to files byte-identical to the main
-  entry. Headless mode is unaffected — it is a property of the main entry, which still has
-  no stylesheet side effects.
-- `BREAKPOINTS`, `createObserver`, `getRootMargin`, `getThreshold`, `resolveEasing` and
-  `isSupported` from the package entry, along with the `ElementConfig` and `ObserverHandle`
-  types that only described `createObserver`'s signature. `DEFAULTS` is unchanged, and
-  `DEFAULTS.breakpoints` replaces `BREAKPOINTS`.
-
 ## 1.0.0
 
 First public release.
