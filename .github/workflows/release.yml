@@ -18,12 +18,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Full history: the guard below has to reason about whether the
+          # tagged commit is reachable from main, which a shallow clone cannot.
+          fetch-depth: 0
+
 
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
+
+      # Releases come from main only. A tag on develop means someone skipped
+      # the merge, and publishing it would ship code that is not on the release
+      # branch. Fails loudly rather than skipping, so a missing release is never
+      # mistaken for a successful one.
+      - name: Verify the tag is on main
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME is not reachable from main — merge to main before tagging"
+            exit 1
+          fi
+          echo "tagged commit is on main"
 
       - run: npm ci
 

@@ -278,14 +278,19 @@ Publishing runs from CI on a version tag, using npm
 anywhere, and npm generates a provenance attestation automatically, linking the published tarball
 to the exact commit and workflow that built it.
 
+Work lands on `develop`; **releases are cut from `main` only**:
+
 ```sh
-npm version patch   # or minor / major
+git checkout main
+git merge --ff-only develop
+npm version patch          # or minor / major
 git push --follow-tags
 ```
 
-The workflow refuses to publish if the tag and `package.json` disagree, and `prepublishOnly` runs
-lint, typecheck, tests, the build, `check:pkg` and the package smoke test before anything reaches
-the registry.
+The workflow refuses to publish if the tagged commit is not reachable from `main`, or if the tag
+and `package.json` disagree. It fails loudly rather than skipping, so a release that did not happen
+is never mistaken for one that did. `prepublishOnly` then runs lint, typecheck, tests, the build,
+`check:pkg` and the package smoke test before anything reaches the registry.
 
 ---
 
