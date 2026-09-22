@@ -1,0 +1,8 @@
+/// Full bundle: core plus every animation family.
+/// Import individual families instead if you only need some of them.
+@forward 'config';
+@use 'core';
+@use 'animations/fade';
+@use 'animations/zoom';
+@use 'animations/slide';
+@use 'animations/flip';

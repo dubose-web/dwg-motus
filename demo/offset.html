@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      document.documentElement.classList.remove('no-js');
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offset — dwg-motus</title>
+    <link rel="stylesheet" href="/dist/css/motus.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <style>
+      /* One row, same vertical position, different offsets — the only variable
+         is the offset, so you can watch them fire in order. */
+      .row {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+      }
+      .col {
+        text-align: center;
+      }
+      .col .label {
+        margin-bottom: 6px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      /* The box is invisible until it fires, so outline the slot — otherwise
+         the row looks like it has holes rather than pending animations. */
+      .slot {
+        border: 1px dashed var(--line);
+        border-radius: 14px;
+        padding: 3px;
+      }
+      .slot .box {
+        margin: 0;
+        padding: 30px 6px;
+        font-size: 11px;
+      }
+      .box.motus-animate {
+        border-color: #3fb950;
+        color: #3fb950;
+      }
+      .pad {
+        height: 95vh;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+      #line {
+        position: fixed;
+        left: 0;
+        right: 0;
+        border-top: 2px dashed var(--accent);
+        z-index: 4;
+        pointer-events: none;
+      }
+      #line span {
+        position: absolute;
+        right: 8px;
+        top: 4px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        color: var(--accent);
+      }
+      @media (max-width: 700px) {
+        .row {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Offset</h1>
+      <p class="lede">
+        Six boxes on one line, each with a different <code>data-motus-offset</code>. Scroll slowly:
+        a larger offset means the box must travel further up the viewport before it fires, so they
+        light up left to right. The dashed blue line is the default 120px trigger point. They reset
+        on the way back up.
+      </p>
+      <nav></nav>
+    </header>
+
+    <div id="line"><span>default trigger line (offset 120)</span></div>
+
+    <main>
+      <div class="pad">↓ scroll slowly ↓</div>
+      <div class="row">
+        <div class="col">
+          <div class="label">-200</div>
+          <div class="slot">
+            <div class="box" data-motus="fade-up" data-motus-mirror="true" data-motus-offset="-200">
+              -200
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="label">-100</div>
+          <div class="slot">
+            <div class="box" data-motus="fade-up" data-motus-mirror="true" data-motus-offset="-100">
+              -100
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="label">0</div>
+          <div class="slot">
+            <div class="box" data-motus="fade-up" data-motus-mirror="true" data-motus-offset="0">
+              0
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="label">120 (default)</div>
+          <div class="slot">
+            <div class="box" data-motus="fade-up" data-motus-mirror="true">120</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="label">300</div>
+          <div class="slot">
+            <div class="box" data-motus="fade-up" data-motus-mirror="true" data-motus-offset="300">
+              300
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="label">500</div>
+          <div class="slot">
+            <div class="box" data-motus="fade-up" data-motus-mirror="true" data-motus-offset="500">
+              500
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pad">↑ scroll back up to reset ↑</div>
+    </main>
+
+    <script src="_nav.js"></script>
+    <script type="module">
+      import Motus from '/dist/motus.js';
+
+      Motus.init();
+
+      // Draw the default trigger line where offset 120 actually bites.
+      const line = document.getElementById('line');
+      const place = () => {
+        line.style.top = `${innerHeight - 120}px`;
+      };
+      addEventListener('resize', place);
+      place();
+    </script>
+  </body>
+</html>

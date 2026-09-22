@@ -1,0 +1,3 @@
+/// Translate distance used by the fade and zoom families.
+/// Configure with `@use '@duboseweb/motus/scss/config' with ($motus-distance: 200px);`
+$motus-distance: 100px !default;

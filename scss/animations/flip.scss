@@ -1,0 +1,42 @@
+/// flip-left, flip-right, flip-up, flip-down
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html:not(.no-js):not([data-motus-disabled]):not([data-motus-inactive]) {
+    [data-motus^='flip'][data-motus^='flip'] {
+      backface-visibility: hidden;
+      transition-property: transform;
+    }
+
+    [data-motus='flip-left'] {
+      transform: perspective(2500px) rotateY(-100deg);
+
+      &.motus-animate {
+        transform: perspective(2500px) rotateY(0);
+      }
+    }
+
+    [data-motus='flip-right'] {
+      transform: perspective(2500px) rotateY(100deg);
+
+      &.motus-animate {
+        transform: perspective(2500px) rotateY(0);
+      }
+    }
+
+    [data-motus='flip-up'] {
+      transform: perspective(2500px) rotateX(-100deg);
+
+      &.motus-animate {
+        transform: perspective(2500px) rotateX(0);
+      }
+    }
+
+    [data-motus='flip-down'] {
+      transform: perspective(2500px) rotateX(100deg);
+
+      &.motus-animate {
+        transform: perspective(2500px) rotateX(0);
+      }
+    }
+  }
+}

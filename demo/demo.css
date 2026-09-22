@@ -1,0 +1,145 @@
+:root {
+  --bg: #0f1115;
+  --panel: #181b22;
+  --ink: #e8eaed;
+  --muted: #9aa3b2;
+  --accent: #6ea8fe;
+  --line: #262b36;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f8fa;
+    --panel: #fff;
+    --ink: #1a1d23;
+    --muted: #5a6474;
+    --accent: #2563eb;
+    --line: #e3e6ec;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 16px 40vh;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    16px/1.6 ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+header {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 18vh 0 8vh;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  letter-spacing: -0.02em;
+}
+h1 code {
+  color: var(--accent);
+  font-size: 0.9em;
+}
+p.lede {
+  margin: 0 0 24px;
+  color: var(--muted);
+  max-width: 60ch;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+nav a {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+nav a:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+nav a[aria-current] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.box {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px 16px;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.spacer {
+  height: 60vh;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.anchor-target {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+button {
+  font: inherit;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+#log {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: 260px;
+  max-height: 200px;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}

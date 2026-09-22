@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      document.documentElement.classList.remove('no-js');
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Candidates — dwg-motus</title>
+    <!-- Only the core stylesheet: the candidates stand on their own, exactly
+         as a shipped family does. No fade/zoom/slide/flip rules are loaded. -->
+    <link rel="stylesheet" href="/dist/css/core.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <link rel="stylesheet" href="candidates.css" />
+    <script src="_nav.js"></script>
+    <style>
+      .controls {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        align-items: center;
+        margin-bottom: 28px;
+        padding: 14px 16px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .controls label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .controls select {
+        font: inherit;
+        padding: 4px 6px;
+        color: var(--ink);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      .controls input[type='range'] {
+        width: 130px;
+        accent-color: var(--accent);
+      }
+      .controls output {
+        min-width: 52px;
+        color: var(--ink);
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .card .name {
+        margin-bottom: 6px;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        color: var(--accent);
+      }
+      .slot {
+        border: 1px dashed var(--line);
+        border-radius: 14px;
+        padding: 3px;
+      }
+      .slot .box {
+        padding: 34px 10px;
+      }
+      .slot .box small {
+        display: block;
+        margin-top: 6px;
+        opacity: 0.75;
+      }
+      /* Used only by the replay button, to snap back to the start state
+         without animating the reset. */
+      .no-transition {
+        transition: none !important;
+      }
+      .note {
+        margin: 28px 0 0;
+        padding: 14px 16px;
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        font-size: 0.875rem;
+        color: var(--muted);
+      }
+      @media (max-width: 760px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Candidates</h1>
+      <p class="lede">
+        A proposed <code>rotate</code> family, plus <code>blur</code>, written exactly as a shipped
+        partial would be — so what you are judging here is the real thing. Nothing on this page
+        ships yet. Slow the duration right down to tell the pivots apart.
+      </p>
+      <nav></nav>
+    </header>
+
+    <main>
+      <div class="controls">
+        <label>
+          angle
+          <input id="angle" type="range" min="0" max="30" step="1" value="14" />
+          <output id="angleOut">14deg</output>
+        </label>
+        <label>
+          duration
+          <input id="duration" type="range" min="100" max="3000" step="100" value="400" />
+          <output id="durationOut">400ms</output>
+        </label>
+        <label>
+          easing
+          <select id="easing">
+            <option value="cubic-bezier(.175, .885, .32, 1.275)" selected>ease-out-back</option>
+            <option value="ease">ease</option>
+            <option value="cubic-bezier(.215, .61, .355, 1)">ease-out-cubic</option>
+            <option value="cubic-bezier(.68, -.55, .265, 1.55)">ease-in-out-back</option>
+            <option value="cubic-bezier(.34, 1.56, .64, 1)">springier (custom)</option>
+          </select>
+        </label>
+        <button id="replay" type="button">Replay</button>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="name">rotate</div>
+          <div class="slot">
+            <div class="box" data-motus="rotate" data-motus-mirror="true">
+              rotate<small>centre pivot — a flat spin</small>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="name">rotate-left</div>
+          <div class="slot">
+            <div class="box" data-motus="rotate-left" data-motus-mirror="true">
+              rotate-left<small>hinges up from bottom-left</small>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="name">rotate-right</div>
+          <div class="slot">
+            <div class="box" data-motus="rotate-right" data-motus-mirror="true">
+              rotate-right<small>hinges up from bottom-right</small>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="name">rotate-up</div>
+          <div class="slot">
+            <div class="box" data-motus="rotate-up" data-motus-mirror="true">
+              rotate-up<small>tips upright from its base</small>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="name">rotate-down</div>
+          <div class="slot">
+            <div class="box" data-motus="rotate-down" data-motus-mirror="true">
+              rotate-down<small>swings down from its top edge</small>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="name">blur-in</div>
+          <div class="slot">
+            <div class="box" data-motus="blur-in" data-motus-mirror="true">
+              blur-in<small>filter focus pull</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">
+        <strong>Not shipped.</strong> These live in <code>demo/candidates.css</code> only. The page
+        loads <code>core.css</code> and nothing else from <code>dist/css/</code>, so they behave
+        under <code>data-motus-duration</code>, <code>-delay</code> and <code>-easing</code> exactly
+        as a real family would. The easing control writes <code>--motus-easing</code>, the same
+        property <code>data-motus-easing</code> sets.
+      </p>
+
+      <div class="spacer">↓ scroll past and back to replay them in place ↓</div>
+      <div class="spacer"></div>
+      <div class="spacer"></div>
+    </main>
+
+    <script type="module">
+      import Motus from '/dist/motus.js';
+
+      Motus.init();
+
+      const boxes = [...document.querySelectorAll('[data-motus]')];
+      const angle = document.getElementById('angle');
+      const angleOut = document.getElementById('angleOut');
+      const duration = document.getElementById('duration');
+      const durationOut = document.getElementById('durationOut');
+
+      // Candidate-only knob. Whatever value reads best here is the number to
+      // bake into the partial if this gets promoted.
+      const applyAngle = () => {
+        document.documentElement.style.setProperty('--candidate-rotate', angle.value + 'deg');
+        angleOut.textContent = angle.value + 'deg';
+      };
+
+      // Writes the library's own custom property — the same mechanism behind
+      // the `duration` option and data-motus-duration.
+      const applyDuration = () => {
+        document.body.style.setProperty('--motus-duration', duration.value + 'ms');
+        durationOut.textContent = duration.value + 'ms';
+      };
+
+      // Easing is a user option, not part of an animation family — a shipped
+      // partial never declares its own. The bounce these read best with is
+      // ease-out-back, which the library already ships, so it costs nothing to
+      // bake into a family and is available via data-motus-easing.
+      const easing = document.getElementById('easing');
+      const applyEasing = () => {
+        document.body.style.setProperty('--motus-easing', easing.value);
+      };
+
+      angle.addEventListener('input', applyAngle);
+      duration.addEventListener('input', applyDuration);
+      easing.addEventListener('change', applyEasing);
+      applyAngle();
+      applyDuration();
+      applyEasing();
+
+      // Replay without scrolling. Removing and re-adding the class in one go
+      // coalesces into no change, so the initial state has to be committed in
+      // between — reading a computed style off each element forces that.
+      document.getElementById('replay').addEventListener('click', () => {
+        // Dropping the class on its own would just transition backwards, so the
+        // element would still be near its end state when the class went back on
+        // and nothing visible would happen. Transitions are suppressed for the
+        // reset, committed with a style read, then switched back on.
+        boxes.forEach((b) => b.classList.add('no-transition'));
+        boxes.forEach((b) => b.classList.remove('motus-animate'));
+        boxes.forEach((b) => void getComputedStyle(b).transform);
+        boxes.forEach((b) => b.classList.remove('no-transition'));
+        boxes.forEach((b) => void getComputedStyle(b).transform);
+        boxes.forEach((b) => b.classList.add('motus-animate'));
+      });
+    </script>
+  </body>
+</html>

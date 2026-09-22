@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      document.documentElement.classList.remove('no-js');
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Headless — dwg-motus</title>
+    <!-- No motus stylesheet on this page, deliberately. Only the JS. -->
+    <link rel="stylesheet" href="demo.css" />
+    <style>
+      /* Self-contained on purpose: this page loads no motus stylesheet, so
+         each animation declares its own timing too. These three sit outside
+         both the shipped families and the rotate/blur candidates. */
+      @media (prefers-reduced-motion: no-preference) {
+        /* Same guard the shipped families use: each of these is an escape route
+           out of the hidden state for a visitor whose animation will not run.
+           [data-motus-inactive] is the one the library sets on itself — note
+           this page is below the default 992px cut-off on a phone. */
+        html:not(.no-js):not([data-motus-disabled]):not([data-motus-inactive]) {
+          /* A wipe. No opacity, no transform. */
+          [data-motus='wipe-in'] {
+            clip-path: inset(0 100% 0 0);
+            transition: clip-path 700ms cubic-bezier(0.65, 0, 0.35, 1);
+          }
+          [data-motus='wipe-in'].motus-animate {
+            clip-path: inset(0 0 0 0);
+          }
+
+          /* Tracking. No transform is involved at all. */
+          [data-motus='spread-in'] {
+            opacity: 0;
+            letter-spacing: 0.4em;
+            transition:
+              opacity 600ms ease,
+              letter-spacing 700ms cubic-bezier(0.22, 1, 0.36, 1);
+          }
+          [data-motus='spread-in'].motus-animate {
+            opacity: 1;
+            letter-spacing: normal;
+          }
+
+          /* A shear. A transform, but not one any family or candidate uses. */
+          [data-motus='skew-in'] {
+            opacity: 0;
+            transform: skewY(-6deg) skewX(10deg);
+            transition:
+              opacity 500ms ease,
+              transform 650ms cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
+          [data-motus='skew-in'].motus-animate {
+            opacity: 1;
+            transform: none;
+          }
+        }
+      }
+
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .demo-grid .box {
+        padding: 44px 16px;
+      }
+      @media (max-width: 700px) {
+        .demo-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Headless</h1>
+      <p class="lede">
+        This page loads the JavaScript and <strong>none of the shipped stylesheets</strong>. The
+        library adds <code>motus-init</code> and <code>motus-animate</code> and fires its events;
+        everything visual below is hand-written CSS. None of these three is expressible with the
+        shipped fade, zoom, slide or flip families. The <code>rotate</code> and
+        <code>blur</code> ideas have moved to the <a href="candidates.html">candidates</a> page.
+      </p>
+      <nav></nav>
+    </header>
+
+    <main>
+      <div class="spacer">↓ scroll — each column animates differently ↓</div>
+      <div class="demo-grid">
+        <div class="box" data-motus="spread-in" data-motus-mirror="true">
+          spread-in<br /><small>letter-spacing, no transform</small>
+        </div>
+        <div class="box" data-motus="wipe-in" data-motus-mirror="true">
+          wipe-in<br /><small>clip-path, no fade or move</small>
+        </div>
+        <div class="box" data-motus="skew-in" data-motus-mirror="true">
+          skew-in<br /><small>shear, not in any family</small>
+        </div>
+      </div>
+      <div class="spacer">↑ scroll back up to replay ↑</div>
+    </main>
+
+    <pre id="log"></pre>
+
+    <script src="_nav.js"></script>
+    <script type="module">
+      // No CSS import: the package entry has no stylesheet side effects.
+      import Motus from '/dist/motus.js';
+
+      const log = document.getElementById('log');
+      const line =
+        (kind) =>
+        ({ detail }) => {
+          log.textContent =
+            `${kind}: ${detail.node.dataset.motus}\n` + log.textContent.slice(0, 500);
+        };
+      document.addEventListener('motus:in', line('in'));
+      document.addEventListener('motus:out', line('out'));
+
+      Motus.init();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+/// Core transition wiring. Required by every animation family.
+///
+/// Duration, delay and easing come from custom properties that the JS sets on
+/// <body> (globals) and on individual elements (per-element overrides), so
+/// there are no generated per-value classes.
+
+@media (prefers-reduced-motion: no-preference) {
+  body.motus-ready [data-motus] {
+    transition-duration: var(--motus-duration);
+    transition-delay: 0s;
+    transition-timing-function: var(--motus-easing);
+
+    // Delay applies on the way in only, never on a mirror reset.
+    &.motus-animate {
+      transition-delay: var(--motus-delay);
+    }
+  }
+}

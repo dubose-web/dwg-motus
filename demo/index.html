@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      document.documentElement.classList.remove('no-js');
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dwg-motus — dwg-motus</title>
+    <link rel="stylesheet" href="/dist/css/motus.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script src="_nav.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>dwg-motus</h1>
+      <p class="lede">
+        Animate on scroll via IntersectionObserver. Scroll down — every box below animates as it
+        enters the viewport.
+      </p>
+      <nav></nav>
+    </header>
+    <main>
+      <div class="spacer">↓ scroll ↓</div>
+      <div class="grid">
+        <div class="box" data-motus="fade">fade</div>
+        <div class="box" data-motus="fade-up">fade-up</div>
+        <div class="box" data-motus="fade-down">fade-down</div>
+        <div class="box" data-motus="fade-left">fade-left</div>
+        <div class="box" data-motus="fade-right">fade-right</div>
+        <div class="box" data-motus="fade-up-left">fade-up-left</div>
+        <div class="box" data-motus="fade-up-right">fade-up-right</div>
+        <div class="box" data-motus="fade-down-left">fade-down-left</div>
+        <div class="box" data-motus="fade-down-right">fade-down-right</div>
+        <div class="box" data-motus="zoom-in">zoom-in</div>
+        <div class="box" data-motus="zoom-in-up">zoom-in-up</div>
+        <div class="box" data-motus="zoom-in-down">zoom-in-down</div>
+        <div class="box" data-motus="zoom-in-left">zoom-in-left</div>
+        <div class="box" data-motus="zoom-in-right">zoom-in-right</div>
+        <div class="box" data-motus="zoom-out">zoom-out</div>
+        <div class="box" data-motus="zoom-out-up">zoom-out-up</div>
+        <div class="box" data-motus="zoom-out-down">zoom-out-down</div>
+        <div class="box" data-motus="zoom-out-left">zoom-out-left</div>
+        <div class="box" data-motus="zoom-out-right">zoom-out-right</div>
+        <div class="box" data-motus="slide-up">slide-up</div>
+        <div class="box" data-motus="slide-down">slide-down</div>
+        <div class="box" data-motus="slide-left">slide-left</div>
+        <div class="box" data-motus="slide-right">slide-right</div>
+        <div class="box" data-motus="flip-up">flip-up</div>
+        <div class="box" data-motus="flip-down">flip-down</div>
+        <div class="box" data-motus="flip-left">flip-left</div>
+        <div class="box" data-motus="flip-right">flip-right</div>
+      </div>
+      <div class="spacer">custom duration, delay and easing per element</div>
+      <div class="grid">
+        <div class="box" data-motus="fade-up" data-motus-duration="1200">duration=1200</div>
+        <div class="box" data-motus="fade-up" data-motus-delay="400">delay=400</div>
+        <div class="box" data-motus="fade-up" data-motus-easing="ease-out-back">ease-out-back</div>
+        <div class="box" data-motus="fade-up" data-motus-easing="cubic-bezier(.25,.1,.25,1)">
+          raw cubic-bezier
+        </div>
+      </div>
+    </main>
+    <pre id="log"></pre>
+    <script type="module">
+      import Motus from '/dist/motus.js';
+
+      const log = document.getElementById('log');
+      document.addEventListener('motus:in', ({ detail }) => {
+        log.textContent = `in: ${detail.node.dataset.motus}\n` + log.textContent.slice(0, 600);
+      });
+
+      Motus.init();
+    </script>
+  </body>
+</html>

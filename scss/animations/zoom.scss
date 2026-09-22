@@ -1,0 +1,58 @@
+@use '../config' as *;
+
+/// zoom-in, zoom-in-up, zoom-in-down, zoom-in-left, zoom-in-right
+/// zoom-out, zoom-out-up, zoom-out-down, zoom-out-left, zoom-out-right
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html:not(.no-js):not([data-motus-disabled]):not([data-motus-inactive]) {
+    [data-motus^='zoom'][data-motus^='zoom'] {
+      opacity: 0;
+      transition-property: opacity, transform;
+
+      &.motus-animate {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+
+    [data-motus='zoom-in'] {
+      transform: scale(0.6);
+    }
+
+    [data-motus='zoom-in-up'] {
+      transform: translate3d(0, $motus-distance, 0) scale(0.6);
+    }
+
+    [data-motus='zoom-in-down'] {
+      transform: translate3d(0, -$motus-distance, 0) scale(0.6);
+    }
+
+    [data-motus='zoom-in-right'] {
+      transform: translate3d(-$motus-distance, 0, 0) scale(0.6);
+    }
+
+    [data-motus='zoom-in-left'] {
+      transform: translate3d($motus-distance, 0, 0) scale(0.6);
+    }
+
+    [data-motus='zoom-out'] {
+      transform: scale(1.2);
+    }
+
+    [data-motus='zoom-out-up'] {
+      transform: translate3d(0, $motus-distance, 0) scale(1.2);
+    }
+
+    [data-motus='zoom-out-down'] {
+      transform: translate3d(0, -$motus-distance, 0) scale(1.2);
+    }
+
+    [data-motus='zoom-out-right'] {
+      transform: translate3d(-$motus-distance, 0, 0) scale(1.2);
+    }
+
+    [data-motus='zoom-out-left'] {
+      transform: translate3d($motus-distance, 0, 0) scale(1.2);
+    }
+  }
+}

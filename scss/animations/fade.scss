@@ -1,0 +1,60 @@
+@use '../config' as *;
+
+/// fade, fade-in
+/// fade-up, fade-down, fade-left, fade-right
+/// fade-up-right, fade-up-left, fade-down-right, fade-down-left
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html:not(.no-js):not([data-motus-disabled]):not([data-motus-inactive]) {
+    // The selector is doubled on purpose: it raises specificity so the family
+    // base rule outranks a single-attribute override from consuming CSS.
+    [data-motus^='fade'][data-motus^='fade'] {
+      opacity: 0;
+      transition-property: opacity, transform;
+
+      &.motus-animate {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    // Declared explicitly rather than relying on the prefix rule above, so a
+    // plain opacity fade is a real, greppable animation.
+    [data-motus='fade'],
+    [data-motus='fade-in'] {
+      transform: none;
+    }
+
+    [data-motus='fade-up'] {
+      transform: translate3d(0, $motus-distance, 0);
+    }
+
+    [data-motus='fade-down'] {
+      transform: translate3d(0, -$motus-distance, 0);
+    }
+
+    [data-motus='fade-right'] {
+      transform: translate3d(-$motus-distance, 0, 0);
+    }
+
+    [data-motus='fade-left'] {
+      transform: translate3d($motus-distance, 0, 0);
+    }
+
+    [data-motus='fade-up-right'] {
+      transform: translate3d(-$motus-distance, $motus-distance, 0);
+    }
+
+    [data-motus='fade-up-left'] {
+      transform: translate3d($motus-distance, $motus-distance, 0);
+    }
+
+    [data-motus='fade-down-right'] {
+      transform: translate3d(-$motus-distance, -$motus-distance, 0);
+    }
+
+    [data-motus='fade-down-left'] {
+      transform: translate3d($motus-distance, -$motus-distance, 0);
+    }
+  }
+}

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      document.documentElement.classList.remove('no-js');
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Once &amp; mirror — dwg-motus</title>
+    <link rel="stylesheet" href="/dist/css/motus.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script src="_nav.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Once &amp; mirror</h1>
+      <p class="lede">
+        Scroll down then back up. <code>once</code> elements never reset;
+        <code>mirror</code> elements animate back out on the way past.
+      </p>
+      <nav></nav>
+    </header>
+    <main>
+      <div class="spacer">↓ scroll down, then back up ↓</div>
+      <div class="spacer"></div>
+      <div class="grid">
+        <div class="box" data-motus="fade-up" data-motus-once="true">
+          once=true<br />(never resets)
+        </div>
+        <div class="box" data-motus="fade-up" data-motus-mirror="true">
+          mirror=true<br />(animates out)
+        </div>
+        <div class="box" data-motus="fade-up">default<br />(stays visible)</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="grid">
+        <div class="box" data-motus="zoom-in" data-motus-mirror="true">zoom-in + mirror</div>
+        <div class="box" data-motus="flip-left" data-motus-mirror="true">flip-left + mirror</div>
+        <div class="box" data-motus="slide-up" data-motus-mirror="true">slide-up + mirror</div>
+      </div>
+      <div class="spacer"></div>
+    </main>
+    <script type="module">
+      import Motus from '/dist/motus.js';
+      Motus.init();
+    </script>
+  </body>
+</html>

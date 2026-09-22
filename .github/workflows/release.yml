@@ -1,0 +1,74 @@
+name: Release
+
+# Publishing is driven entirely by a version tag: `git tag v1.0.1 && git push --tags`.
+on:
+  push:
+    tags: ['v*']
+
+# No NPM_TOKEN. Authentication is a short-lived OIDC credential scoped to this
+# workflow, which npm exchanges for publish rights via trusted publishing — and
+# which also makes npm generate a provenance attestation automatically.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Full history: the guard below has to reason about whether the
+          # tagged commit is reachable from main, which a shallow clone cannot.
+          fetch-depth: 0
+
+      # Trusted publishing needs npm 11.5.1+. Node 22 still bundles npm 10,
+      # which cannot exchange the OIDC token and fails the publish; Node 24
+      # bundles npm 11.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      # Releases come from main only. A tag on develop means someone skipped
+      # the merge, and publishing it would ship code that is not on the release
+      # branch. Fails loudly rather than skipping, so a missing release is never
+      # mistaken for a successful one.
+      - name: Verify the tag is on main
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME is not reachable from main — merge to main before tagging"
+            exit 1
+          fi
+          echo "tagged commit is on main"
+
+      - run: npm ci
+
+      # A mistagged release would publish the wrong version under the right
+      # name, which cannot be undone. Fail before touching the registry.
+      - name: Verify the tag matches package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+          echo "publishing $PKG"
+
+      # prepublishOnly runs lint, typecheck, tests, build, check:pkg and the
+      # package smoke test. Keeping the gate there rather than duplicating it
+      # in YAML means a local publish is protected by exactly the same checks.
+      #
+      # TEMPORARY, for the first publish only. npm cannot configure a trusted
+      # publisher for a package that does not exist yet, so 1.0.0 authenticates
+      # with NPM_TOKEN: npm tries OIDC first and falls back to the token when no
+      # trusted publisher matches. `--provenance` is explicit because only the
+      # OIDC path turns it on by default. Once the trusted publisher is set up,
+      # delete the token and the secret, and drop the env block and the flag.
+      - run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
