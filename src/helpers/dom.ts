@@ -29,6 +29,14 @@ export const fireEvent = (
   }
 };
 
+/** The three custom properties this library owns, global and per element alike. */
+const VARS = [VAR_DURATION, VAR_DELAY, VAR_EASING];
+
+const clearVars = (target: { style: CSSStyleDeclaration } | null): void => {
+  if (!target) return;
+  for (const name of VARS) target.style.removeProperty(name);
+};
+
 /** Global duration/delay/easing, read by the core stylesheet. */
 export const setGlobalVars = (options: MotusOptions): void => {
   const { body } = document;
@@ -39,20 +47,11 @@ export const setGlobalVars = (options: MotusOptions): void => {
   body.style.setProperty(VAR_EASING, resolveEasing(options.easing));
 };
 
-export const clearGlobalVars = (): void => {
-  const { body } = document;
-  if (!body) return;
+// `document.body` is null before the parser reaches it; the element variant
+// always has a node.
+export const clearGlobalVars = (): void => clearVars(document.body);
 
-  body.style.removeProperty(VAR_DURATION);
-  body.style.removeProperty(VAR_DELAY);
-  body.style.removeProperty(VAR_EASING);
-};
-
-export const clearElementVars = (el: HTMLElement): void => {
-  el.style.removeProperty(VAR_DURATION);
-  el.style.removeProperty(VAR_DELAY);
-  el.style.removeProperty(VAR_EASING);
-};
+export const clearElementVars = (el: HTMLElement): void => clearVars(el);
 
 /**
  * Per-element overrides. Only written when the attribute is actually present —

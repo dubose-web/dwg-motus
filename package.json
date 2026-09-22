@@ -52,14 +52,6 @@
       "import": "./dist/motus.js",
       "require": "./dist/motus.cjs"
     },
-    "./headless": {
-      "types": {
-        "import": "./dist/motus.d.ts",
-        "require": "./dist/motus.d.cts"
-      },
-      "import": "./dist/motus.js",
-      "require": "./dist/motus.cjs"
-    },
     "./motus.css": "./dist/css/motus.css",
     "./css/*.css": "./dist/css/*.css",
     "./scss/*.scss": "./scss/*.scss",
@@ -81,7 +73,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build && npm run check:pkg && npm run test:pack -- --no-build",
-    "check:pkg": "publint && attw --pack . --profile node16 --entrypoints . ./headless",
+    "check:pkg": "publint && attw --pack . --profile node16 --entrypoints .",
     "dev:js": "NODE_ENV=development rollup -c --watch",
     "dev:css": "NODE_ENV=development node scripts/build-css.mjs --watch",
     "test:pack": "node scripts/smoke-package.mjs"

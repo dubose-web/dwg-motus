@@ -32,6 +32,7 @@ Browser floor is native IntersectionObserver: Chrome 51+, Firefox 55+, Safari 12
 - **`defaults.ts`** — frozen defaults. **Never merge into it**; always `Object.assign({}, DEFAULTS, …)`.
 - **`validate.ts`** — `normalizeOptions()`: merge, clamp, and emit one grouped warning.
 - **`observers/intersection.ts`** — observer pooling and the activation gate.
+- **`observers/animatedState.ts`** — seeds a rebuilt config's `animated` from the DOM.
 - **`observers/elementConfig.ts`** — resolves per-element settings; the only setup-time DOM writes.
 - **`observers/rootMargin.ts`** — pure `getRootMargin` / `getThreshold` maths.
 - **`observers/mutation.ts`** — watches for added `[data-motus]` nodes, batched per frame.
@@ -66,8 +67,11 @@ Do not "simplify" these — each one is load-bearing, and most were bugs once.
    state with no animation.
 2. **`activated` gate** in `createObserver` — IntersectionObserver fires immediately on
    `observe()`, before transitions are enabled. The gate is what makes (1) work.
-3. **`activate()` does its own `getBoundingClientRect` sweep.** IO will not re-deliver an entry
-   whose state has not changed since the suppressed first callback.
+3. **`activate()` replays, it does not measure.** It drains `buffered` plus
+   `observer.takeRecords()`, because IO will not re-deliver an entry whose state has not
+   changed since the suppressed first callback. Every geometry decision comes from the
+   browser, using each pool's own rootMargin and threshold — never add a layout read here
+   (`test/observers/intersection.test.ts` asserts zero `getBoundingClientRect` calls).
 4. **Observer pool key is `` `${anchorPlacement}-${offset}` ``** with a `Map<target, config[]>`
    so elements can share an anchor.
 5. **Unobserve only when every config on a target has `once && animated`.**
@@ -80,6 +84,14 @@ Do not "simplify" these — each one is load-bearing, and most were bugs once.
    specificity. Keep the duplication.
 10. **`disable()` must not strip `data-motus*` attributes** — markup has to survive a re-init.
 11. **Every listener goes through `listen()`** so `destroy()` can remove it.
+12. **A rebuilt config seeds `animated` from the animated class on the element**
+    (`seedAnimated`). Configs are rebuilt from scratch on every `rebuild()` and `activate()`
+    then replays the observers' initial records, so seeding `false` re-fires `motus:in` for
+    everything already on screen. The class is the source of truth, not a remembered flag:
+    the stylesheet hides `[data-motus]` until it animates, so trusting memory over the DOM
+    leaves an element whose classes a re-render reset hidden for good. The WeakMap in
+    `observers/animatedState.ts` is only the fallback for `animatedClassName: false`, where
+    no marker is written; `disable()` resets it.
 
 ## Style
 

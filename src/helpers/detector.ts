@@ -21,5 +21,3 @@ export const phone = (): boolean =>
 export const mobile = (): boolean => matchMedia('(pointer: coarse) and (hover: none)').matches;
 
 export const tablet = (): boolean => mobile() && !phone();
-
-export default { below, phone, mobile, tablet };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import detect from '../../src/helpers/detector.js';
+import * as detect from '../../src/helpers/detector.js';
 import { BELOW_LG, belowQuery, COARSE, COARSE_PHONE, stubMatchMedia } from '../setup.js';
 
 describe('below()', () => {

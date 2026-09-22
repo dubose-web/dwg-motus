@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildConfigs } from '../../src/observers/elementConfig.js';
+import { resetAnimatedState } from '../../src/observers/animatedState.js';
 import { createObserver } from '../../src/observers/intersection.js';
 import { DEFAULTS } from '../../src/defaults.js';
 import type { MotusOptions } from '../../src/types.js';
@@ -379,5 +380,170 @@ describe('disconnect()', () => {
 
     expect(MockIntersectionObserver.instances).toHaveLength(2);
     expect(MockIntersectionObserver.instances.every((o) => o.disconnected)).toBe(true);
+  });
+});
+
+describe('animated state across rebuilds', () => {
+  /** What rebuild() does: fresh configs over the same nodes, then activate(). */
+  const rebuild = (els: HTMLElement[], opts = options()) =>
+    createObserver(build(els, opts)).activate();
+
+  afterEach(() => {
+    resetAnimatedState();
+  });
+
+  const onscreen = (els: Element[]) => {
+    for (const el of els) setRect(el, { top: 100, bottom: 300 });
+  };
+
+  it('does not re-fire motus:in when the configs are rebuilt', () => {
+    const els = mount('<div data-motus="fade"></div>');
+    onscreen(els);
+    rebuild(els);
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
+
+    const spy = vi.fn();
+    document.addEventListener('motus:in', spy);
+    rebuild(els);
+    document.removeEventListener('motus:in', spy);
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
+  });
+
+  it('does not re-fire the id-scoped event on rebuild', () => {
+    const els = mount('<div data-motus="fade" data-motus-id="hero"></div>');
+    onscreen(els);
+    rebuild(els);
+
+    const spy = vi.fn();
+    document.addEventListener('motus:in:hero', spy);
+    rebuild(els);
+    document.removeEventListener('motus:in:hero', spy);
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('does not re-observe a once element that already animated', () => {
+    const els = mount('<div data-motus="fade" data-motus-once="true"></div>');
+    onscreen(els);
+    rebuild(els);
+
+    const before = MockIntersectionObserver.instances.length;
+    const spy = vi.fn();
+    document.addEventListener('motus:in', spy);
+    rebuild(els);
+    document.removeEventListener('motus:in', spy);
+
+    expect(spy).not.toHaveBeenCalled();
+    // Skipped before pooling: with nothing left to watch, the rebuild does not
+    // construct an observer at all.
+    expect(MockIntersectionObserver.instances).toHaveLength(before);
+  });
+
+  it('animates a mirrored element in again after it scrolled away', () => {
+    const els = mount('<div data-motus="fade" data-motus-mirror="true"></div>');
+    onscreen(els);
+    rebuild(els);
+
+    MockIntersectionObserver.last.trigger([{ target: els[0]!, isIntersecting: false }]);
+    expect(els[0]!.classList.contains('motus-animate')).toBe(false);
+
+    const spy = vi.fn();
+    document.addEventListener('motus:in', spy);
+    rebuild(els);
+    document.removeEventListener('motus:in', spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a mirrored element still on screen animate out after a rebuild', () => {
+    // Guards the seeded-`true` path rather than the bug itself: the out-branch
+    // is gated on `config.animated`, so seeding must not leave it stuck off.
+    const els = mount('<div data-motus="fade" data-motus-mirror="true"></div>');
+    onscreen(els);
+    rebuild(els);
+    rebuild(els);
+
+    const spy = vi.fn();
+    document.addEventListener('motus:out', spy);
+    MockIntersectionObserver.last.trigger([{ target: els[0]!, isIntersecting: false }]);
+    document.removeEventListener('motus:out', spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(els[0]!.classList.contains('motus-animate')).toBe(false);
+  });
+
+  it('keeps state per node when two elements share an anchor', () => {
+    const els = mount(
+      '<div id="anchor"></div>',
+      '<div data-motus="fade" data-motus-anchor="#anchor"></div>',
+      '<div data-motus="zoom-in" data-motus-anchor="#anchor"></div>',
+    );
+    setRect(document.getElementById('anchor')!, { top: 100, bottom: 300 });
+    onscreen(els);
+
+    rebuild(els);
+    expect(els.every((el) => el.classList.contains('motus-animate'))).toBe(true);
+
+    const spy = vi.fn();
+    document.addEventListener('motus:in', spy);
+    rebuild(els);
+    document.removeEventListener('motus:in', spy);
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('re-animates when the animated class was stripped from the DOM', () => {
+    // The class is what the stylesheet keys on, so it outranks anything
+    // remembered: a framework re-render that resets className must not leave
+    // the element hidden for good.
+    const els = mount('<div data-motus="fade"></div>');
+    onscreen(els);
+    rebuild(els);
+
+    els[0]!.classList.remove('motus-animate');
+
+    const spy = vi.fn();
+    document.addEventListener('motus:in', spy);
+    rebuild(els);
+    document.removeEventListener('motus:in', spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
+  });
+
+  describe('with animatedClassName: false', () => {
+    // No class is written, so there is no DOM marker to read back and the
+    // WeakMap is the only thing standing between a rebuild and a duplicate event.
+    const opts = options({ animatedClassName: false });
+
+    it('still dedupes motus:in across a rebuild', () => {
+      const els = mount('<div data-motus="fade"></div>');
+      onscreen(els);
+      rebuild(els, opts);
+
+      const spy = vi.fn();
+      document.addEventListener('motus:in', spy);
+      rebuild(els, opts);
+      document.removeEventListener('motus:in', spy);
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('re-animates after resetAnimatedState()', () => {
+      const els = mount('<div data-motus="fade"></div>');
+      onscreen(els);
+      rebuild(els, opts);
+
+      resetAnimatedState();
+
+      const spy = vi.fn();
+      document.addEventListener('motus:in', spy);
+      rebuild(els, opts);
+      document.removeEventListener('motus:in', spy);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -29,5 +29,3 @@ const EASING_MAP: Record<string, string> = {
 };
 
 export const resolveEasing = (name: Easing): string => EASING_MAP[name] ?? name;
-
-export default resolveEasing;

@@ -8,20 +8,14 @@ export type {
   CssEasingKeyword,
   DisableOption,
   Easing,
-  ElementConfig,
   MotusApi,
   MotusEasingName,
   MotusEventDetail,
   MotusOptions,
   MotusUserOptions,
-  ObserverHandle,
 } from './types.js';
 
-export { BREAKPOINTS, DEFAULTS } from './defaults.js';
-export { createObserver } from './observers/intersection.js';
-export { getRootMargin, getThreshold } from './observers/rootMargin.js';
-export { resolveEasing } from './helpers/resolveEasing.js';
-export { isSupported } from './helpers/support.js';
+export { DEFAULTS } from './defaults.js';
 
 export { init, refresh, refreshHard, destroy };
 

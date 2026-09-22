@@ -1,6 +1,7 @@
 import { EVENT_IN, EVENT_OUT } from '../constants.js';
 import { addClasses, fireEvent, removeClasses } from '../helpers/dom.js';
 import type { ElementConfig, ObserverHandle } from '../types.js';
+import { setAnimated } from './animatedState.js';
 import { getRootMargin, getThreshold } from './rootMargin.js';
 
 interface Pool {
@@ -24,7 +25,14 @@ interface Pool {
  * values are the only inputs to `rootMargin` and `threshold`. A page with 200
  * elements sharing one configuration gets one observer, not 200.
  */
-export const createObserver = (configs: ElementConfig[]): ObserverHandle => {
+export const createObserver = (
+  configs: ElementConfig[],
+  /**
+   * Passed in by `rebuild()`, which has already read it. Every pool would
+   * otherwise re-read `window.innerHeight` through `getRootMargin`'s default.
+   */
+  windowHeight: number = window.innerHeight,
+): ObserverHandle => {
   /**
    * IntersectionObserver fires its first callback immediately on `observe()`,
    * before the stylesheet's `motus-ready` gate is in place. Holding callbacks
@@ -45,11 +53,13 @@ export const createObserver = (configs: ElementConfig[]): ObserverHandle => {
           addClasses(config.node, config.animatedClassNames);
           fireEvent(EVENT_IN, config.node, config.id);
           config.animated = true;
+          setAnimated(config.node, true);
         }
       } else if (config.animated && config.mirror && !config.once) {
         removeClasses(config.node, config.animatedClassNames);
         fireEvent(EVENT_OUT, config.node, config.id);
         config.animated = false;
+        setAnimated(config.node, false);
       }
     }
 
@@ -61,6 +71,11 @@ export const createObserver = (configs: ElementConfig[]): ObserverHandle => {
   };
 
   for (const config of configs) {
+    // A finished `once` config can only produce callbacks it would ignore.
+    // Skipping before pooling leaves the unobserve rule intact — the config
+    // simply never enters the target Map.
+    if (config.once && config.animated) continue;
+
     const key = `${config.anchorPlacement}-${config.offset}`;
     let pool = pools.get(key);
 
@@ -75,7 +90,7 @@ export const createObserver = (configs: ElementConfig[]): ObserverHandle => {
           for (const entry of entries) handleEntry(entry, pool!);
         },
         {
-          rootMargin: getRootMargin(config.anchorPlacement, config.offset),
+          rootMargin: getRootMargin(config.anchorPlacement, config.offset, windowHeight),
           threshold: getThreshold(config.anchorPlacement),
         },
       );

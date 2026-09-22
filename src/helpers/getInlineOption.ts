@@ -22,5 +22,3 @@ export function getInlineOption<T>(
 
   return value ?? fallback;
 }
-
-export default getInlineOption;

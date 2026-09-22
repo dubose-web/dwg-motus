@@ -12,5 +12,3 @@ export const isSupported = (): boolean => {
 
   return 'intersectionRatio' in window.IntersectionObserverEntry.prototype;
 };
-
-export default isSupported;

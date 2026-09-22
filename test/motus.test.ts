@@ -204,10 +204,21 @@ describe('refresh()', () => {
     expect(MockIntersectionObserver.instances.length).toBeGreaterThan(before);
   });
 
-  it('is not reachable with the internal initialize flag', () => {
-    mount();
-    (refresh as () => void)();
-    expect(document.body.classList.contains('motus-ready')).toBe(false);
+  it('does not re-fire motus:in for elements that already animated', () => {
+    // The regression: rebuild() throws the configs away and calls activate(),
+    // which replays an "intersecting" record for everything still on screen.
+    const els = mount();
+    setRect(els[0]!, { top: 100, bottom: 300 });
+    init();
+    settleFrames();
+
+    const spy = vi.fn();
+    document.addEventListener('motus:in', spy);
+    refresh();
+    document.removeEventListener('motus:in', spy);
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
   });
 
   it('recomputes rootMargin for the new height', () => {
@@ -441,6 +452,24 @@ describe('destroy()', () => {
 
     expect(els[0]!.classList.contains('motus-animate')).toBe(true);
   });
+
+  it('fires motus:in again on re-init', () => {
+    // disable() strips the animated class, so the remembered state has to go
+    // with it — otherwise the re-init animates nothing.
+    const els = mount();
+    setRect(els[0]!, { top: 100, bottom: 300 });
+    init();
+    settleFrames();
+    destroy();
+
+    const spy = vi.fn();
+    document.addEventListener('motus:in', spy);
+    init();
+    settleFrames();
+    document.removeEventListener('motus:in', spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('dynamically added content', () => {
@@ -459,6 +488,45 @@ describe('dynamically added content', () => {
 
     expect(added.classList.contains('motus-init')).toBe(true);
     expect(added.classList.contains('motus-animate')).toBe(true);
+  });
+
+  it('animates only the new element, not the ones already on screen', () => {
+    const els = mount();
+    setRect(els[0]!, { top: 100, bottom: 300 });
+    init();
+    settleFrames();
+
+    const spy = vi.fn();
+    document.addEventListener('motus:in', spy);
+
+    document.body.insertAdjacentHTML('beforeend', '<div data-motus="fade"></div>');
+    const added = document.body.lastElementChild as HTMLElement;
+    setRect(added, { top: 100, bottom: 300 });
+    refreshHard();
+    document.removeEventListener('motus:in', spy);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]![0].detail.node).toBe(added);
+  });
+
+  it('re-animates a node whose classes a re-render reset', () => {
+    // Detach, wipe className, re-attach — what a framework re-render looks
+    // like. The CSS hides every [data-motus] element until it animates, so a
+    // rebuild that trusted a remembered `animated` would hide this for good.
+    const els = mount();
+    setRect(els[0]!, { top: 100, bottom: 300 });
+    init();
+    settleFrames();
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
+
+    els[0]!.remove();
+    els[0]!.className = '';
+    document.body.appendChild(els[0]!);
+    setRect(els[0]!, { top: 100, bottom: 300 });
+
+    refresh();
+
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
   });
 
   it('refresh() rebuilds even when the height is unchanged', () => {

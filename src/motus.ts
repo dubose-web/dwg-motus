@@ -1,9 +1,10 @@
 import { ATTR, CLASS_READY, DISABLED_ATTR, INACTIVE_ATTR, LOG_PREFIX } from './constants.js';
 import { DEFAULTS } from './defaults.js';
 import { debounce } from './helpers/debounce.js';
-import detect from './helpers/detector.js';
+import * as detect from './helpers/detector.js';
 import { clearElementVars, clearGlobalVars, setGlobalVars } from './helpers/dom.js';
 import { isSupported } from './helpers/support.js';
+import { resetAnimatedState } from './observers/animatedState.js';
 import { buildConfigs } from './observers/elementConfig.js';
 import { createObserver } from './observers/intersection.js';
 import { watch } from './observers/mutation.js';
@@ -38,7 +39,7 @@ const collectElements = (): HTMLElement[] => [
  * Takes the whole options object rather than just `disable`, because a tier
  * name is meaningless without the breakpoint map it indexes into.
  */
-export const isDisabled = (opts: MotusOptions): boolean => {
+const isDisabled = (opts: MotusOptions): boolean => {
   const { disable } = opts;
 
   return (
@@ -55,13 +56,6 @@ export const isDisabled = (opts: MotusOptions): boolean => {
   );
 };
 
-const initializeObservers = (): HTMLElement[] => {
-  elements = collectElements();
-  observers?.disconnect();
-  observers = createObserver(buildConfigs(elements, options));
-  return elements;
-};
-
 /**
  * Rebuilds the observers from the current DOM.
  *
@@ -73,7 +67,10 @@ const rebuild = (): void => {
   if (!initialized) return;
 
   lastWindowHeight = window.innerHeight;
-  initializeObservers();
+
+  elements = collectElements();
+  observers?.disconnect();
+  observers = createObserver(buildConfigs(elements, options), lastWindowHeight);
 
   if (document.body.classList.contains(CLASS_READY)) {
     // Already painted once — the new observers just need un-gating.
@@ -141,7 +138,7 @@ export const refreshHard = (): void => {
  * library added. Deliberately leaves `data-motus*` attributes alone so the
  * markup survives and `init()` works again afterwards.
  */
-export const disable = (): void => {
+const disable = (): void => {
   // The CSS hides every [data-motus] element until it animates. With the
   // library off, nothing will ever add that class, so this attribute is what
   // stops the page from rendering blank.
@@ -160,6 +157,11 @@ export const disable = (): void => {
     if (options.initClassName) el.classList.remove(options.initClassName);
     if (options.animatedClassName) el.classList.remove(options.animatedClassName);
   }
+
+  // The classes are gone, so the remembered state is now a lie. Reset here
+  // rather than in destroy() so the disable -> refreshHard() round trip
+  // re-animates. destroy() calls disable() first, so it inherits this.
+  resetAnimatedState();
 };
 
 /**
