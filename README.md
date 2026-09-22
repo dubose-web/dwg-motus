@@ -278,14 +278,23 @@ Publishing runs from CI on a version tag, using npm
 anywhere, and npm generates a provenance attestation automatically, linking the published tarball
 to the exact commit and workflow that built it.
 
-Work lands on `develop`; **releases are cut from `main` only**:
+Work lands on `develop`. `main` is protected and takes pull requests only, so the version bump is
+made on `develop` and the tag is cut from `main` after the merge:
 
 ```sh
-git checkout main
-git merge --ff-only develop
-npm version patch          # or minor / major
-git push --follow-tags
+# on develop — bump the version without tagging yet
+npm version patch --no-git-tag-version   # or minor / major
+git commit -am "Release v1.0.1"
+git push
+
+# open a pull request from develop to main and merge it
+
+git checkout main && git pull
+git tag v1.0.1
+git push origin v1.0.1                   # this is what triggers the release
 ```
+
+Tags are not covered by the branch protection, so the final push is what starts the publish.
 
 The workflow refuses to publish if the tagged commit is not reachable from `main`, or if the tag
 and `package.json` disagree. It fails loudly rather than skipping, so a release that did not happen
