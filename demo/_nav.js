@@ -7,6 +7,7 @@ const PAGES = [
   ['once.html', 'Once & mirror'],
   ['async.html', 'Dynamic DOM'],
   ['headless.html', 'Headless'],
+  ['candidates.html', 'Candidates'],
   ['diagnose.html', 'Diagnose'],
 ];
 

@@ -1,0 +1,87 @@
+/**
+ * CANDIDATE animations — not shipped.
+ *
+ * These are under evaluation for promotion to real families alongside fade,
+ * zoom, slide and flip. They are written exactly as `scss/animations/*.scss`
+ * is written, so that judging them here is honest and promoting them later is
+ * close to a copy-paste:
+ *
+ *   - wrapped in `@media screen and (prefers-reduced-motion: no-preference)`
+ *   - gated on `html:not(.no-js):not([data-motus-disabled])`
+ *   - the family base rule uses a doubled attribute selector for specificity
+ *   - no duration, delay or easing here; those come from core.css via the
+ *     --motus-* custom properties the library sets on <body>
+ *
+ * The one deviation: the rotation angle is a custom property so the demo page
+ * can tune it live. A shipped partial would use a literal, or a Sass variable
+ * in the style of $motus-distance.
+ */
+
+:root {
+  --candidate-rotate: 14deg;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  html:not(.no-js):not([data-motus-disabled]) {
+    /* ---- rotate: in-plane rotation about a pivot ---------------------- */
+
+    /* Doubled on purpose: raises specificity so the family base rule
+       outranks a single-attribute override from consuming CSS. */
+    [data-motus^='rotate'][data-motus^='rotate'] {
+      opacity: 0;
+      transition-property: opacity, transform;
+    }
+
+    [data-motus^='rotate'][data-motus^='rotate'].motus-animate {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Neutral: a flat spin about the centre, no swing. Declared explicitly
+       rather than left to the prefix rule, so it is greppable — the same
+       reason fade declares `fade` and `fade-in`. */
+    [data-motus='rotate'],
+    [data-motus='rotate-in'] {
+      transform-origin: center;
+      transform: rotate(calc(-0.6 * var(--candidate-rotate)));
+    }
+
+    /* Corner hinges. transform-origin is what makes these read as a rotation
+       rather than a drift; note none of these pairs the rotation with a
+       translate, which would dominate it and look like a fade. */
+    [data-motus='rotate-left'] {
+      transform-origin: bottom left;
+      transform: rotate(calc(-1 * var(--candidate-rotate))) scale(0.96);
+    }
+
+    [data-motus='rotate-right'] {
+      transform-origin: bottom right;
+      transform: rotate(var(--candidate-rotate)) scale(0.96);
+    }
+
+    /* Tips upright from its own base. */
+    [data-motus='rotate-up'] {
+      transform-origin: bottom center;
+      transform: rotate(calc(-0.85 * var(--candidate-rotate)));
+    }
+
+    /* Hangs from its top edge and swings down into place. */
+    [data-motus='rotate-down'] {
+      transform-origin: top center;
+      transform: rotate(calc(0.85 * var(--candidate-rotate)));
+    }
+
+    /* ---- blur: a focus pull ------------------------------------------ */
+
+    [data-motus^='blur'][data-motus^='blur'] {
+      opacity: 0;
+      filter: blur(14px);
+      transition-property: opacity, filter;
+    }
+
+    [data-motus^='blur'][data-motus^='blur'].motus-animate {
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+}

@@ -10,26 +10,11 @@
     <!-- No motus stylesheet on this page, deliberately. Only the JS. -->
     <link rel="stylesheet" href="demo.css" />
     <style>
-      /* Three animations the shipped stylesheets cannot express, written by
-         hand and driven entirely by the motus-animate class. Selectors match
-         the data-motus value, exactly as CUSTOMIZATION.md describes. */
+      /* Self-contained on purpose: this page loads no motus stylesheet, so
+         each animation declares its own timing too. These three sit outside
+         both the shipped families and the rotate/blur candidates. */
       @media (prefers-reduced-motion: no-preference) {
-        /* A hinge swing. transform-origin is what makes it read as a rotation
-           rather than a drift — there is no vertical travel competing with it. */
-        [data-motus='rotate-in'] {
-          opacity: 0;
-          transform-origin: bottom left;
-          transform: rotate(-14deg) scale(0.96);
-          transition:
-            opacity 500ms ease,
-            transform 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        [data-motus='rotate-in'].motus-animate {
-          opacity: 1;
-          transform: none;
-        }
-
-        /* A wipe. No opacity, no transform — impossible with the built-ins. */
+        /* A wipe. No opacity, no transform. */
         [data-motus='wipe-in'] {
           clip-path: inset(0 100% 0 0);
           transition: clip-path 700ms cubic-bezier(0.65, 0, 0.35, 1);
@@ -38,17 +23,30 @@
           clip-path: inset(0 0 0 0);
         }
 
-        /* A focus pull, driven by filter. */
-        [data-motus='blur-in'] {
+        /* Tracking. No transform is involved at all. */
+        [data-motus='spread-in'] {
           opacity: 0;
-          filter: blur(14px);
+          letter-spacing: 0.4em;
           transition:
             opacity 600ms ease,
-            filter 600ms ease;
+            letter-spacing 700ms cubic-bezier(0.22, 1, 0.36, 1);
         }
-        [data-motus='blur-in'].motus-animate {
+        [data-motus='spread-in'].motus-animate {
           opacity: 1;
-          filter: blur(0);
+          letter-spacing: normal;
+        }
+
+        /* A shear. A transform, but not one any family or candidate uses. */
+        [data-motus='skew-in'] {
+          opacity: 0;
+          transform: skewY(-6deg) skewX(10deg);
+          transition:
+            opacity 500ms ease,
+            transform 650ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        [data-motus='skew-in'].motus-animate {
+          opacity: 1;
+          transform: none;
         }
       }
 
@@ -71,10 +69,11 @@
     <header>
       <h1>Headless</h1>
       <p class="lede">
-        This page loads the JavaScript and <strong>no motus stylesheet at all</strong>. The library
-        adds <code>motus-init</code> and <code>motus-animate</code> and fires its events; everything
-        visual below is hand-written CSS. None of these three is expressible with the shipped fade,
-        zoom, slide or flip families.
+        This page loads the JavaScript and <strong>none of the shipped stylesheets</strong>. The
+        library adds <code>motus-init</code> and <code>motus-animate</code> and fires its events;
+        everything visual below is hand-written CSS. None of these three is expressible with the
+        shipped fade, zoom, slide or flip families. The <code>rotate</code> and
+        <code>blur</code> ideas have moved to the <a href="candidates.html">candidates</a> page.
       </p>
       <nav></nav>
     </header>
@@ -82,14 +81,14 @@
     <main>
       <div class="spacer">↓ scroll — each column animates differently ↓</div>
       <div class="demo-grid">
-        <div class="box" data-motus="rotate-in" data-motus-mirror="true">
-          rotate-in<br /><small>hinge swing from bottom-left</small>
+        <div class="box" data-motus="spread-in" data-motus-mirror="true">
+          spread-in<br /><small>letter-spacing, no transform</small>
         </div>
         <div class="box" data-motus="wipe-in" data-motus-mirror="true">
           wipe-in<br /><small>clip-path, no fade or move</small>
         </div>
-        <div class="box" data-motus="blur-in" data-motus-mirror="true">
-          blur-in<br /><small>filter focus pull</small>
+        <div class="box" data-motus="skew-in" data-motus-mirror="true">
+          skew-in<br /><small>shear, not in any family</small>
         </div>
       </div>
       <div class="spacer">↑ scroll back up to replay ↑</div>
