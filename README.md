@@ -203,6 +203,35 @@ Animations are also wrapped in `html:not(.no-js)`, so if you set `class="no-js"`
 
 ---
 
+## Troubleshooting
+
+**Nothing animates, but the content is all visible.** This is almost always
+`prefers-reduced-motion`, and it is the library working as intended. Every animation rule is
+gated on it, so if the viewer has asked for reduced motion they get the content immediately,
+static. Check with:
+
+```js
+matchMedia('(prefers-reduced-motion: reduce)').matches;
+```
+
+On macOS the setting is **System Settings → Accessibility → Display → Reduce motion**, and it
+applies to every browser. Firefox picks a change up immediately; Chrome may need a restart,
+which is why the two can briefly disagree. Firefox also reports `reduce` unconditionally when
+`privacy.resistFingerprinting` is enabled.
+
+Note that most browser-automation tools _override_ this: Playwright, for example, defaults to
+`reducedMotion: 'no-preference'`, so an automated check can show animations running on a machine
+where a real browser would correctly suppress them.
+
+**Nothing animates and nothing is initialised.** Check that the `no-js` class is actually being
+removed from `<html>`. Every animation is gated behind `html:not(.no-js)`, so if the script that
+removes it is blocked or never runs, the whole library appears dead. Remove it from an inline
+script in `<head>`, not an external file.
+
+`demo/diagnose.html` in the repository checks all of the above and names the cause.
+
+---
+
 ## Browser support
 
 Requires native [IntersectionObserver](https://caniuse.com/intersectionobserver): **Chrome 51+, Firefox 55+, Safari 12.1+, Edge 79+**. No IE11, and no polyfill is bundled. On an unsupported browser `init()` warns and returns, leaving all content visible.
