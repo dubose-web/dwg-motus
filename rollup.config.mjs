@@ -26,12 +26,27 @@ const ts = () =>
     // Declarations come from the dedicated dts pass below.
     declaration: false,
     declarationMap: false,
-    sourceMap: true,
+    // Must track the output setting, or Rollup warns that it was asked for
+    // maps it is not configured to emit.
+    sourceMap: isDev,
   });
 
-const minify = () => (isDev ? null : terser({ format: { comments: false } }));
-
 const banner = '/*! dwg-motus | MIT License | https://github.com/dubose-web/dwg-motus */';
+
+/**
+ * Only the UMD build is minified.
+ *
+ * ESM and CJS are consumed through a bundler, which minifies them again on the
+ * way into the application — so minifying here changes nothing an end user
+ * downloads, and costs readable stack traces. That matters more now that source
+ * maps are deliberately not published. UMD is the opposite case: it is loaded
+ * directly by a <script> tag, so those bytes really do go over the wire.
+ *
+ * `preamble` rather than `output.banner`, because terser drops every comment
+ * (including a `/*!` one) and runs after Rollup has prepended the banner.
+ * preamble is injected post-minification and cannot be stripped.
+ */
+const minifyUmd = () => (isDev ? null : terser({ format: { comments: false, preamble: banner } }));
 
 export default [
   // ESM + CJS from the public entry, in a single pass.
@@ -43,7 +58,6 @@ export default [
     ],
     plugins: [
       ts(),
-      minify(),
       // `npm run dev` serves demo/ against the freshly built dist/.
       isDev && serve({ open: true, contentBase: ['demo', '.'], port: 8080 }),
       isDev && livereload({ watch: ['dist', 'demo'] }),
@@ -61,11 +75,11 @@ export default [
         format: 'umd',
         name: 'Motus',
         sourcemap: isDev,
-        banner,
+        // No `banner` here: terser injects it as a preamble instead.
         exports: 'default',
       },
     ],
-    plugins: [ts(), minify()],
+    plugins: [ts(), minifyUmd()].filter(Boolean),
   },
 
   // Bundled declarations: one .d.ts for ESM consumers, one .d.cts so a CJS

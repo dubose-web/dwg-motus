@@ -238,15 +238,54 @@ Requires native [IntersectionObserver](https://caniuse.com/intersectionobserver)
 
 ---
 
+## What ships
+
+|                                   |                                           |
+| --------------------------------- | ----------------------------------------- |
+| `dist/motus.js`, `dist/motus.cjs` | **unminified**, with readable identifiers |
+| `dist/motus.umd.js`               | minified, for `<script>` tags             |
+| `dist/motus.d.ts`, `.d.cts`       | types for `import` and `require`          |
+| `dist/css/*.css`                  | minified, one file per animation family   |
+| `scss/**`                         | the Sass sources, for your own build      |
+
+The bundler entries are deliberately not minified. Your bundler minifies them again on the way
+into your application, so the bytes reaching a browser are identical either way — what you get
+back is a readable stack trace when something goes wrong inside the library. The UMD build is the
+opposite case: it is loaded directly by a `<script>` tag, so it stays minified.
+
+Source maps are not published. They would reference `src/*.ts` files the package does not contain,
+so a debugger would report "source not found" while the maps took up nearly half the download.
+The unminified builds serve the same purpose without the indirection.
+
+---
+
 ## Development
 
 ```sh
 npm install
-npm run dev     # demo pages at http://localhost:8080 with live reload
-npm test        # vitest
-npm run build   # dist/
+npm run dev        # demo pages at http://localhost:8080 with live reload
+npm test           # vitest
+npm run build      # dist/
 npm run lint
+npm run test:pack  # pack, install into a throwaway project, assert it works
+npm run check:pkg  # publint + are-the-types-wrong
 ```
+
+### Releasing
+
+Publishing runs from CI on a version tag, using npm
+[trusted publishing](https://docs.npmjs.com/trusted-publishers) — there is no npm token stored
+anywhere, and npm generates a provenance attestation automatically, linking the published tarball
+to the exact commit and workflow that built it.
+
+```sh
+npm version patch   # or minor / major
+git push --follow-tags
+```
+
+The workflow refuses to publish if the tag and `package.json` disagree, and `prepublishOnly` runs
+lint, typecheck, tests, the build, `check:pkg` and the package smoke test before anything reaches
+the registry.
 
 ---
 

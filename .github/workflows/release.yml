@@ -1,0 +1,45 @@
+name: Release
+
+# Publishing is driven entirely by a version tag: `git tag v1.0.1 && git push --tags`.
+on:
+  push:
+    tags: ['v*']
+
+# No NPM_TOKEN. Authentication is a short-lived OIDC credential scoped to this
+# workflow, which npm exchanges for publish rights via trusted publishing — and
+# which also makes npm generate a provenance attestation automatically.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - run: npm ci
+
+      # A mistagged release would publish the wrong version under the right
+      # name, which cannot be undone. Fail before touching the registry.
+      - name: Verify the tag matches package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+          echo "publishing $PKG"
+
+      # prepublishOnly runs lint, typecheck, tests, build, check:pkg and the
+      # package smoke test. Keeping the gate there rather than duplicating it
+      # in YAML means a local publish is protected by exactly the same checks.
+      - run: npm publish
