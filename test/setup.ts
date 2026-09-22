@@ -28,6 +28,30 @@ export class MockIntersectionObserver implements IntersectionObserver {
 
   observe(target: Element): void {
     this.observed.add(target);
+    // A real IntersectionObserver computes and queues an initial record for
+    // every target shortly after observe(). Modelling that is what lets the
+    // library replay it in activate().
+    this.queueRecords([{ target, isIntersecting: this.intersects(target) }]);
+  }
+
+  /** Applies this observer's own rootMargin and threshold, as the browser would. */
+  private intersects(target: Element): boolean {
+    const [marginTop, , marginBottom] = this.rootMargin
+      .split(/\s+/)
+      .map((part) => parseFloat(part) || 0);
+
+    const rootTop = 0 - (marginTop ?? 0);
+    const rootBottom = window.innerHeight + (marginBottom ?? 0);
+
+    const rect = target.getBoundingClientRect();
+    const overlap = Math.min(rect.bottom, rootBottom) - Math.max(rect.top, rootTop);
+    if (overlap <= 0) return false;
+
+    const threshold = this.thresholds[0] ?? 0;
+    if (threshold === 0) return true;
+
+    const height = rect.bottom - rect.top;
+    return height > 0 && overlap / height >= threshold;
   }
 
   unobserve(target: Element): void {
@@ -40,24 +64,41 @@ export class MockIntersectionObserver implements IntersectionObserver {
     this.disconnected = true;
   }
 
+  /** Records the browser has computed but not yet dispatched. */
+  private pending: IntersectionObserverEntry[] = [];
+
   takeRecords(): IntersectionObserverEntry[] {
-    return [];
+    const records = this.pending;
+    this.pending = [];
+    return records;
   }
 
-  /** Drives the callback as the browser would. */
+  private static entries(
+    entries: Array<{ target: Element; isIntersecting: boolean }>,
+  ): IntersectionObserverEntry[] {
+    return entries.map(({ target, isIntersecting }) => ({
+      target,
+      isIntersecting,
+      intersectionRatio: isIntersecting ? 1 : 0,
+      boundingClientRect: target.getBoundingClientRect(),
+      intersectionRect: target.getBoundingClientRect(),
+      rootBounds: null,
+      time: 0,
+    })) as IntersectionObserverEntry[];
+  }
+
+  /** Dispatches to the callback, as the browser does on each observation pass. */
   trigger(entries: Array<{ target: Element; isIntersecting: boolean }>): void {
-    this.callback(
-      entries.map(({ target, isIntersecting }) => ({
-        target,
-        isIntersecting,
-        intersectionRatio: isIntersecting ? 1 : 0,
-        boundingClientRect: target.getBoundingClientRect(),
-        intersectionRect: target.getBoundingClientRect(),
-        rootBounds: null,
-        time: 0,
-      })) as IntersectionObserverEntry[],
-      this,
-    );
+    this.callback(MockIntersectionObserver.entries(entries), this);
+  }
+
+  /**
+   * Computes records without dispatching them, so `takeRecords()` can drain
+   * them. Models the window where the browser has observed but not yet called
+   * back.
+   */
+  queueRecords(entries: Array<{ target: Element; isIntersecting: boolean }>): void {
+    this.pending.push(...MockIntersectionObserver.entries(entries));
   }
 
   static reset(): void {

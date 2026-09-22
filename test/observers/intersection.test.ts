@@ -114,58 +114,93 @@ describe('the activation gate', () => {
 });
 
 describe('activate()', () => {
-  it('animates an element already inside the viewport with no observer callback', () => {
+  it('replays an entry that arrived while the gate was closed', () => {
+    // The browser delivers its first callback before activate() runs. That
+    // entry must be kept, because IO will not re-deliver an unchanged state.
     const els = mount('<div data-motus="fade"></div>');
-    setRect(els[0]!, { top: 100, bottom: 300 });
+    const handle = createObserver(build(els));
 
-    createObserver(build(els)).activate();
+    MockIntersectionObserver.last.trigger([{ target: els[0]!, isIntersecting: true }]);
+    expect(els[0]!.classList.contains('motus-animate')).toBe(false);
 
+    handle.activate();
     expect(els[0]!.classList.contains('motus-animate')).toBe(true);
   });
 
-  it('leaves a below-the-fold element alone', () => {
+  it('drains records the browser computed but had not dispatched', () => {
     const els = mount('<div data-motus="fade"></div>');
-    setRect(els[0]!, { top: 900, bottom: 1100 });
+    const handle = createObserver(build(els));
 
-    createObserver(build(els)).activate();
+    MockIntersectionObserver.last.queueRecords([{ target: els[0]!, isIntersecting: true }]);
+    expect(els[0]!.classList.contains('motus-animate')).toBe(false);
+
+    handle.activate();
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
+  });
+
+  it('leaves an element alone when the observer reported no intersection', () => {
+    const els = mount('<div data-motus="fade"></div>');
+    const handle = createObserver(build(els));
+
+    MockIntersectionObserver.last.trigger([{ target: els[0]!, isIntersecting: false }]);
+    handle.activate();
 
     expect(els[0]!.classList.contains('motus-animate')).toBe(false);
   });
 
-  it('applies the offset to the viewport edge', () => {
-    // innerHeight 800, offset 120 -> the trigger line sits at 680.
-    const els = mount('<div data-motus="fade"></div>', '<div data-motus="fade"></div>');
-    setRect(els[0]!, { top: 670, bottom: 700 });
-    setRect(els[1]!, { top: 690, bottom: 720 });
+  it('trusts the observer over the element position on screen', () => {
+    // The regression. With top-top at offset 120 the trigger band is -120..120,
+    // so an element at 400..500 is plainly on screen but must NOT fire. The old
+    // activate() re-derived the line as `bottom > 0 && top < 800 - 120`, which
+    // ignored anchorPlacement and so fired it.
+    const els = mount('<div data-motus="fade" data-motus-anchor-placement="top-top"></div>');
+    setRect(els[0]!, { top: 400, bottom: 500 });
 
-    createObserver(build(els)).activate();
+    const handle = createObserver(build(els));
+    handle.activate();
 
-    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
-    expect(els[1]!.classList.contains('motus-animate')).toBe(false);
+    expect(els[0]!.classList.contains('motus-animate')).toBe(false);
+
+    // Same element under the default placement is inside the band, and fires.
+    const others = mount('<div data-motus="fade"></div>');
+    setRect(others[0]!, { top: 400, bottom: 500 });
+    createObserver(build(others)).activate();
+
+    expect(others[0]!.classList.contains('motus-animate')).toBe(true);
   });
 
-  it('reads every rect before it writes any class', () => {
+  it('performs no layout reads of its own', () => {
+    // All geometry now comes from the observer, so activate() must not measure
+    // anything — there is nothing left to thrash.
     const els = mount('<div data-motus="fade"></div>', '<div data-motus="fade"></div>');
-    const order: string[] = [];
+    const handle = createObserver(build(els));
 
-    // Build first: the init class it writes is setup, not part of activate().
-    const configs = build(els);
+    MockIntersectionObserver.last.trigger(els.map((target) => ({ target, isIntersecting: true })));
 
+    // Counted only from here, so the mock's own rect reads are not included.
+    let reads = 0;
     for (const el of els) {
       el.getBoundingClientRect = () => {
-        order.push('read');
-        return { top: 100, bottom: 300 } as DOMRect;
-      };
-      const add = el.classList.add.bind(el.classList);
-      el.classList.add = (...classes: string[]) => {
-        order.push('write');
-        add(...classes);
+        reads += 1;
+        return { top: 0, bottom: 0 } as DOMRect;
       };
     }
 
-    createObserver(configs).activate();
+    handle.activate();
 
-    expect(order.indexOf('write')).toBeGreaterThan(order.lastIndexOf('read'));
+    expect(reads).toBe(0);
+    expect(els.every((e) => e.classList.contains('motus-animate'))).toBe(true);
+  });
+
+  it('applies the newest observation when several are replayed', () => {
+    const els = mount('<div data-motus="fade"></div>');
+    const handle = createObserver(build(els));
+
+    MockIntersectionObserver.last.trigger([{ target: els[0]!, isIntersecting: false }]);
+    MockIntersectionObserver.last.trigger([{ target: els[0]!, isIntersecting: true }]);
+    handle.activate();
+
+    expect(els[0]!.classList.contains('motus-animate')).toBe(true);
   });
 });
 

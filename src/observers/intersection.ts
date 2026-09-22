@@ -7,6 +7,14 @@ interface Pool {
   observer: IntersectionObserver;
   /** One observed target can back several configs (a shared `data-motus-anchor`). */
   targets: Map<Element, ElementConfig[]>;
+  /**
+   * Entries the browser delivered before `activate()` opened the gate.
+   *
+   * These are kept rather than discarded: IntersectionObserver will not
+   * re-deliver an entry whose intersection state has not changed, so throwing
+   * them away would strand every element that was already on screen at init.
+   */
+  buffered: IntersectionObserverEntry[];
 }
 
 /**
@@ -19,9 +27,9 @@ interface Pool {
 export const createObserver = (configs: ElementConfig[]): ObserverHandle => {
   /**
    * IntersectionObserver fires its first callback immediately on `observe()`,
-   * before the stylesheet's `motus-ready` gate is in place. Suppressing
-   * callbacks until `activate()` is what stops above-the-fold elements from
-   * jumping straight to their final state with no visible transition.
+   * before the stylesheet's `motus-ready` gate is in place. Holding callbacks
+   * back until `activate()` is what stops above-the-fold elements from jumping
+   * straight to their final state with no visible transition.
    */
   let activated = false;
 
@@ -60,7 +68,10 @@ export const createObserver = (configs: ElementConfig[]): ObserverHandle => {
       const targets = new Map<Element, ElementConfig[]>();
       const observer = new IntersectionObserver(
         (entries) => {
-          if (!activated) return;
+          if (!activated) {
+            pool!.buffered.push(...entries);
+            return;
+          }
           for (const entry of entries) handleEntry(entry, pool!);
         },
         {
@@ -69,7 +80,7 @@ export const createObserver = (configs: ElementConfig[]): ObserverHandle => {
         },
       );
 
-      pool = { observer, targets };
+      pool = { observer, targets, buffered: [] };
       pools.set(key, pool);
     }
 
@@ -89,30 +100,26 @@ export const createObserver = (configs: ElementConfig[]): ObserverHandle => {
     },
 
     /**
-     * Enables callbacks and animates anything already on screen.
+     * Opens the gate and settles whatever the observers already know.
      *
-     * The manual rect check is required, not redundant: IntersectionObserver
-     * will not re-deliver an entry whose intersection state has not changed
-     * since the suppressed first callback, so without this sweep every
-     * above-the-fold element would stay un-animated forever.
+     * Replays the entries that arrived while gated, plus any the browser has
+     * computed but not yet dispatched. That is what makes an element which was
+     * already on screen at init animate, without re-deriving the trigger
+     * geometry by hand: every decision here comes from the browser, using each
+     * pool's own rootMargin and threshold.
      *
-     * All reads happen before any write to avoid layout thrashing.
+     * Entries are processed oldest-first so the final state reflects the most
+     * recent observation.
      */
     activate: () => {
       activated = true;
 
-      const pending = configs.filter((config) => !config.animated);
-      const rects = pending.map((config) => config.observeTarget.getBoundingClientRect());
-      const viewportHeight = window.innerHeight;
+      for (const pool of pools.values()) {
+        const entries = pool.buffered.concat(pool.observer.takeRecords());
+        pool.buffered.length = 0;
 
-      pending.forEach((config, index) => {
-        const rect = rects[index]!;
-        if (rect.bottom > 0 && rect.top < viewportHeight - config.offset) {
-          addClasses(config.node, config.animatedClassNames);
-          fireEvent(EVENT_IN, config.node, config.id);
-          config.animated = true;
-        }
-      });
+        for (const entry of entries) handleEntry(entry, pool);
+      }
     },
   };
 };
