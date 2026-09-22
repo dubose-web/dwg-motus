@@ -8,8 +8,11 @@ The JavaScript never knows animation names — it only toggles `motus-animate`. 
 @media (prefers-reduced-motion: no-preference) {
   [data-motus='rotate-in'] {
     opacity: 0;
-    transform: rotate(-8deg) translateY(40px);
-    transition-property: opacity, transform;
+    transform-origin: bottom left;
+    transform: rotate(-14deg) scale(0.96);
+    transition:
+      opacity 500ms ease,
+      transform 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   [data-motus='rotate-in'].motus-animate {
@@ -24,6 +27,13 @@ The JavaScript never knows animation names — it only toggles `motus-animate`. 
 ```
 
 Keep the `prefers-reduced-motion` wrapper. Without it, anyone with reduced motion enabled is left looking at an element stuck at `opacity: 0`.
+
+Two things make that read as a rotation rather than a drift: `transform-origin` gives it a
+pivot, and there is no `translate` competing with it. A few degrees of tilt alongside a vertical
+translate just looks like a fade upwards.
+
+You are not limited to opacity and transform. `demo/headless.html` drives a `clip-path` wipe and
+a `filter` blur off the same class — neither is expressible with the shipped families.
 
 > **Do not prefix a custom name with `fade`, `zoom`, `slide` or `flip`.** The shipped stylesheets match those families with `[data-motus^='fade']`-style selectors, so `fade-slow` would silently inherit `opacity: 0` from the fade family. Pick a name outside those prefixes.
 

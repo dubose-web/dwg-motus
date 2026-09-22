@@ -7,52 +7,110 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Headless — dwg-motus</title>
+    <!-- No motus stylesheet on this page, deliberately. Only the JS. -->
     <link rel="stylesheet" href="demo.css" />
-    <script src="_nav.js"></script>
+    <style>
+      /* Three animations the shipped stylesheets cannot express, written by
+         hand and driven entirely by the motus-animate class. Selectors match
+         the data-motus value, exactly as CUSTOMIZATION.md describes. */
+      @media (prefers-reduced-motion: no-preference) {
+        /* A hinge swing. transform-origin is what makes it read as a rotation
+           rather than a drift — there is no vertical travel competing with it. */
+        [data-motus='rotate-in'] {
+          opacity: 0;
+          transform-origin: bottom left;
+          transform: rotate(-14deg) scale(0.96);
+          transition:
+            opacity 500ms ease,
+            transform 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        [data-motus='rotate-in'].motus-animate {
+          opacity: 1;
+          transform: none;
+        }
+
+        /* A wipe. No opacity, no transform — impossible with the built-ins. */
+        [data-motus='wipe-in'] {
+          clip-path: inset(0 100% 0 0);
+          transition: clip-path 700ms cubic-bezier(0.65, 0, 0.35, 1);
+        }
+        [data-motus='wipe-in'].motus-animate {
+          clip-path: inset(0 0 0 0);
+        }
+
+        /* A focus pull, driven by filter. */
+        [data-motus='blur-in'] {
+          opacity: 0;
+          filter: blur(14px);
+          transition:
+            opacity 600ms ease,
+            filter 600ms ease;
+        }
+        [data-motus='blur-in'].motus-animate {
+          opacity: 1;
+          filter: blur(0);
+        }
+      }
+
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .demo-grid .box {
+        padding: 44px 16px;
+      }
+      @media (max-width: 700px) {
+        .demo-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
   </head>
   <body>
     <header>
       <h1>Headless</h1>
       <p class="lede">
-        No motus stylesheet is loaded here — only the JS. The library toggles classes and fires
-        events; the animation CSS is entirely hand-written below.
+        This page loads the JavaScript and <strong>no motus stylesheet at all</strong>. The library
+        adds <code>motus-init</code> and <code>motus-animate</code> and fires its events; everything
+        visual below is hand-written CSS. None of these three is expressible with the shipped fade,
+        zoom, slide or flip families.
       </p>
       <nav></nav>
     </header>
+
     <main>
-      <div class="spacer">↓ these use bespoke CSS, not the shipped stylesheets ↓</div>
-      <div class="grid">
-        <div class="box custom" data-motus="anything">custom rotate-in</div>
-        <div class="box custom" data-motus="anything">custom rotate-in</div>
-        <div class="box custom" data-motus="anything">custom rotate-in</div>
+      <div class="spacer">↓ scroll — each column animates differently ↓</div>
+      <div class="demo-grid">
+        <div class="box" data-motus="rotate-in" data-motus-mirror="true">
+          rotate-in<br /><small>hinge swing from bottom-left</small>
+        </div>
+        <div class="box" data-motus="wipe-in" data-motus-mirror="true">
+          wipe-in<br /><small>clip-path, no fade or move</small>
+        </div>
+        <div class="box" data-motus="blur-in" data-motus-mirror="true">
+          blur-in<br /><small>filter focus pull</small>
+        </div>
       </div>
-      <div class="spacer"></div>
+      <div class="spacer">↑ scroll back up to replay ↑</div>
     </main>
-    <style>
-      /* Hand-rolled animation driven by the motus-animate class. */
-      @media (prefers-reduced-motion: no-preference) {
-        .custom {
-          opacity: 0;
-          transform: rotate(-8deg) translateY(40px);
-          transition:
-            opacity 600ms ease,
-            transform 600ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .custom.motus-animate {
-          opacity: 1;
-          transform: none;
-        }
-      }
-    </style>
+
     <pre id="log"></pre>
+
+    <script src="_nav.js"></script>
     <script type="module">
-      // Note: no CSS import at all — the root entry has no stylesheet side effects.
+      // No CSS import: the package entry has no stylesheet side effects.
       import Motus from '/dist/motus.js';
 
       const log = document.getElementById('log');
-      document.addEventListener('motus:in', ({ detail }) => {
-        log.textContent = `in: ${detail.node.textContent}\n` + log.textContent.slice(0, 600);
-      });
+      const line =
+        (kind) =>
+        ({ detail }) => {
+          log.textContent =
+            `${kind}: ${detail.node.dataset.motus}\n` + log.textContent.slice(0, 500);
+        };
+      document.addEventListener('motus:in', line('in'));
+      document.addEventListener('motus:out', line('out'));
 
       Motus.init();
     </script>
