@@ -19,6 +19,20 @@ interface Pool {
 }
 
 /**
+ * The target sits entirely above the trigger zone.
+ *
+ * A reload restores the scroll position before `init()`, so the browser's first
+ * record for anything already scrolled past reports it as not intersecting. It
+ * will never cross the zone again, and the stylesheet keeps `[data-motus]`
+ * hidden until it animates — without this those sections stay blank. Reads the
+ * entry only: no layout. A null `rootBounds` (cross-origin iframe) is not past.
+ */
+const isPast = (entry: IntersectionObserverEntry): boolean =>
+  !entry.isIntersecting &&
+  entry.rootBounds !== null &&
+  entry.boundingClientRect.bottom <= entry.rootBounds.top;
+
+/**
  * Creates the IntersectionObservers for a set of resolved configs.
  *
  * Observers are pooled by `anchorPlacement` + `offset`, because those two
@@ -48,14 +62,18 @@ export const createObserver = (
     if (!targets) return;
 
     for (const config of targets) {
-      if (entry.isIntersecting) {
+      // A config that can animate out treats "past" as out, so it only reveals
+      // inside the zone. Everything else counts scrolling past as reaching it.
+      const reversible = config.mirror && !config.once;
+
+      if (entry.isIntersecting || (!reversible && isPast(entry))) {
         if (!config.animated) {
           addClasses(config.node, config.animatedClassNames);
           fireEvent(EVENT_IN, config.node, config.id);
           config.animated = true;
           setAnimated(config.node, true);
         }
-      } else if (config.animated && config.mirror && !config.once) {
+      } else if (config.animated && reversible) {
         removeClasses(config.node, config.animatedClassNames);
         fireEvent(EVENT_OUT, config.node, config.id);
         config.animated = false;

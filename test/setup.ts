@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 
 /**
+ * What a test supplies for one entry. `boundingClientRect` comes from the
+ * target (see `setRect`); `rootBounds` defaults to null, as for a root the
+ * browser will not expose.
+ */
+interface EntryInit {
+  target: Element;
+  isIntersecting: boolean;
+  rootBounds?: Partial<DOMRectReadOnly> | null;
+}
+
+/**
  * A controllable IntersectionObserver.
  *
  * happy-dom does not implement one, which is useful here: tests drive the
@@ -73,22 +84,20 @@ export class MockIntersectionObserver implements IntersectionObserver {
     return records;
   }
 
-  private static entries(
-    entries: Array<{ target: Element; isIntersecting: boolean }>,
-  ): IntersectionObserverEntry[] {
-    return entries.map(({ target, isIntersecting }) => ({
+  private static entries(entries: EntryInit[]): IntersectionObserverEntry[] {
+    return entries.map(({ target, isIntersecting, rootBounds = null }) => ({
       target,
       isIntersecting,
       intersectionRatio: isIntersecting ? 1 : 0,
       boundingClientRect: target.getBoundingClientRect(),
       intersectionRect: target.getBoundingClientRect(),
-      rootBounds: null,
+      rootBounds: rootBounds as DOMRectReadOnly | null,
       time: 0,
     })) as IntersectionObserverEntry[];
   }
 
   /** Dispatches to the callback, as the browser does on each observation pass. */
-  trigger(entries: Array<{ target: Element; isIntersecting: boolean }>): void {
+  trigger(entries: EntryInit[]): void {
     this.callback(MockIntersectionObserver.entries(entries), this);
   }
 
@@ -97,7 +106,7 @@ export class MockIntersectionObserver implements IntersectionObserver {
    * them. Models the window where the browser has observed but not yet called
    * back.
    */
-  queueRecords(entries: Array<{ target: Element; isIntersecting: boolean }>): void {
+  queueRecords(entries: EntryInit[]): void {
     this.pending.push(...MockIntersectionObserver.entries(entries));
   }
 
