@@ -287,6 +287,107 @@ describe('callbacks', () => {
   });
 });
 
+describe('elements already scrolled past', () => {
+  /** A 2px trigger strip at mid-screen, as `top-center` produces. */
+  const zone = { top: 400, bottom: 402 };
+
+  /** Mounts, builds and places every element; the caller decides when to activate. */
+  const place = (markup: string, rect: Partial<DOMRect>, opts = options()) => {
+    const els = mount(markup);
+    for (const el of els) setRect(el, rect);
+    const handle = createObserver(build(els, opts));
+    return { el: els[0]!, handle };
+  };
+
+  const above = { top: -600, bottom: -100 };
+  const below = { top: 900, bottom: 1400 };
+
+  it('reveals an element the initial replay reports above the zone', () => {
+    const { el, handle } = place('<div data-motus="fade"></div>', above);
+    const listener = vi.fn();
+    document.addEventListener('motus:in', listener);
+
+    MockIntersectionObserver.last.queueRecords([
+      { target: el, isIntersecting: false, rootBounds: zone },
+    ]);
+    handle.activate();
+
+    expect(el.classList.contains('motus-animate')).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+    document.removeEventListener('motus:in', listener);
+  });
+
+  it('leaves an element below the zone hidden', () => {
+    const { el, handle } = place('<div data-motus="fade"></div>', below);
+    handle.activate();
+
+    MockIntersectionObserver.last.trigger([
+      { target: el, isIntersecting: false, rootBounds: zone },
+    ]);
+
+    expect(el.classList.contains('motus-animate')).toBe(false);
+  });
+
+  it('does not treat a missing rootBounds as past', () => {
+    const { el, handle } = place('<div data-motus="fade"></div>', above);
+    handle.activate();
+
+    MockIntersectionObserver.last.trigger([
+      { target: el, isIntersecting: false, rootBounds: null },
+    ]);
+
+    expect(el.classList.contains('motus-animate')).toBe(false);
+  });
+
+  it('keeps a mirrored element hidden until it is back in the zone', () => {
+    const { el, handle } = place('<div data-motus="fade" data-motus-mirror="true"></div>', above);
+    handle.activate();
+
+    MockIntersectionObserver.last.trigger([
+      { target: el, isIntersecting: false, rootBounds: zone },
+    ]);
+
+    expect(el.classList.contains('motus-animate')).toBe(false);
+  });
+
+  it('still animates a mirrored element out when it is scrolled past', () => {
+    const { el, handle } = place('<div data-motus="fade" data-motus-mirror="true"></div>', above);
+    handle.activate();
+
+    MockIntersectionObserver.last.trigger([{ target: el, isIntersecting: true }]);
+    MockIntersectionObserver.last.trigger([
+      { target: el, isIntersecting: false, rootBounds: zone },
+    ]);
+
+    expect(el.classList.contains('motus-animate')).toBe(false);
+  });
+
+  it('reveals a mirror + once element, which cannot animate out', () => {
+    const { el, handle } = place(
+      '<div data-motus="fade" data-motus-mirror="true" data-motus-once="true"></div>',
+      above,
+    );
+    handle.activate();
+
+    MockIntersectionObserver.last.trigger([
+      { target: el, isIntersecting: false, rootBounds: zone },
+    ]);
+
+    expect(el.classList.contains('motus-animate')).toBe(true);
+  });
+
+  it('releases a once element revealed as past', () => {
+    const { el, handle } = place('<div data-motus="fade" data-motus-once="true"></div>', above);
+    handle.activate();
+
+    MockIntersectionObserver.last.trigger([
+      { target: el, isIntersecting: false, rootBounds: zone },
+    ]);
+
+    expect(MockIntersectionObserver.last.unobserved).toContain(el);
+  });
+});
+
 describe('unobserving once-elements', () => {
   it('releases the target when the only config is done', () => {
     const els = mount('<div data-motus="fade" data-motus-once="true"></div>');

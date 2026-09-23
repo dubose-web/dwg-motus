@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.2
+
+### Fixes
+
+- Elements already scrolled past when Motus starts — typically after a reload restores the
+  scroll position — are now revealed instead of staying hidden. They animate in off-screen and
+  fire `motus:in` as usual. Elements with `mirror` (and not `once`) are unchanged: they stay
+  hidden until scrolled back into their trigger zone.
+
 ## 1.0.1
 
 ### Documentation
