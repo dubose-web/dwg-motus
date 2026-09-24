@@ -83,18 +83,31 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const { watch } = await import('node:fs');
     console.log('watching scss/ for changes...');
 
-    let rebuilding = false;
+    // A change that lands mid-build sets `pending` and gets one more build
+    // afterwards, rather than being dropped.
+    let building = false;
+    let pending = false;
+    let timer;
+
+    const rebuild = () => {
+      building = true;
+      pending = false;
+      buildCss({ dev: isDev })
+        .catch((error) => console.error(error.message))
+        .finally(() => {
+          building = false;
+          if (pending) rebuild();
+        });
+    };
+
     watch(resolve('scss'), { recursive: true }, () => {
-      if (rebuilding) return;
-      rebuilding = true;
+      if (building) {
+        pending = true;
+        return;
+      }
       // Coalesce the burst of events an editor save produces.
-      setTimeout(() => {
-        buildCss({ dev: isDev })
-          .catch((error) => console.error(error.message))
-          .finally(() => {
-            rebuilding = false;
-          });
-      }, 50);
+      clearTimeout(timer);
+      timer = setTimeout(rebuild, 50);
     });
   }
 }

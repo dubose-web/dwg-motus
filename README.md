@@ -281,7 +281,7 @@ script in `<head>`, not an external file.
 
 ## Browser support
 
-Requires native [IntersectionObserver](https://caniuse.com/intersectionobserver): **Chrome 51+, Firefox 55+, Safari 12.1+, Edge 79+**. No IE11, and no polyfill is bundled. On an unsupported browser `init()` warns and returns, leaving all content visible.
+Requires native [IntersectionObserver](https://caniuse.com/intersectionobserver): **Chrome 58+, Firefox 55+, Safari 12.1+, Edge 79+**. No IE11, and no polyfill is bundled. On an unsupported browser `init()` warns and returns, leaving all content visible. Chrome 51–57 count as unsupported: their IntersectionObserver lacks `isIntersecting`.
 
 ---
 

@@ -440,6 +440,15 @@ describe('class name handling', () => {
     expect(els[0]!.classList.contains('motus-animate')).toBe(true);
   });
 
+  it('splits the data-motus value on any whitespace', () => {
+    // Asserted on the token list: a browser's classList.add throws on a token
+    // containing whitespace, but happy-dom's does not, so the DOM can't show it.
+    const els = mount('<div data-motus="fadeInUp\n\t animated"></div>');
+    const [config] = build(els, options({ useClassNames: true }));
+
+    expect(config!.animatedClassNames).toEqual(['motus-animate', 'fadeInUp', 'animated']);
+  });
+
   it('omits the animated class when it is false', () => {
     const els = mount('<div data-motus="fadeInUp"></div>');
     offscreen(els);

@@ -106,7 +106,7 @@
   "style": "./dist/css/motus.css",
   "sass": "./scss/motus.scss",
   "browserslist": [
-    "chrome >= 51",
+    "chrome >= 58",
     "firefox >= 55",
     "safari >= 12.1",
     "edge >= 79",

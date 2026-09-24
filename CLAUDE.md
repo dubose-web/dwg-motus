@@ -6,7 +6,8 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 **dwg-motus** — animate elements as they scroll into view, using IntersectionObserver rather
 than scroll listeners. TypeScript source, SCSS styles, zero runtime dependencies.
-Browser floor is native IntersectionObserver: Chrome 51+, Firefox 55+, Safari 12.1+, Edge 79+.
+Browser floor is native IntersectionObserver with `isIntersecting`: Chrome 58+, Firefox 55+,
+Safari 12.1+, Edge 79+. `helpers/support.ts` enforces it.
 
 ## Commands
 
@@ -44,7 +45,9 @@ Browser floor is native IntersectionObserver: Chrome 51+, Firefox 55+, Safari 12
 Published verbatim. Filenames have **no `_` prefix** — partial resolution differs between the
 Sass CLI, sass-loader and Vite, and unprefixed names resolve identically everywhere.
 
-`config.scss` (`$motus-distance`) · `core.scss` · `animations/{fade,zoom,slide,flip}.scss`.
+`config.scss` (`$motus-distance`) · `core.scss` · `animations/{fade,zoom,slide,flip}.scss` ·
+`gate.scss` (internal `motus-gate` mixin: the reduced-motion query plus the "library is running"
+selector, which every family rule sits inside; not forwarded by `motus.scss`).
 `scripts/build-css.mjs` compiles these partials directly into `dist/css/`; its `CSS_TARGETS` map
 is the single list of what gets built, and `test/styles.test.ts` imports it so the two cannot
 drift.

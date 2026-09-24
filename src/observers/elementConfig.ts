@@ -76,10 +76,11 @@ export const buildConfigs = (elements: HTMLElement[], options: MotusOptions): El
     }
 
     // `useClassNames` also applies the data-motus value itself, which is how
-    // the Animate.css integration works.
+    // the Animate.css integration works. Split on any whitespace: a tab or
+    // newline left in a token makes `classList.add` throw mid-callback.
     const custom = options.useClassNames ? node.getAttribute(ATTR) : null;
     const animatedClassNames = custom
-      ? baseClassNames.concat(custom.split(' ').filter((name) => name !== ''))
+      ? baseClassNames.concat(custom.split(/\s+/).filter((name) => name !== ''))
       : baseClassNames;
 
     return {

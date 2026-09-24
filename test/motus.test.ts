@@ -93,6 +93,35 @@ describe('init()', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('IntersectionObserver'));
   });
 
+  it('treats an entry without isIntersecting (Chrome 51-57) as unsupported', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    class LegacyEntry {}
+    Object.defineProperty(LegacyEntry.prototype, 'intersectionRatio', { value: 0 });
+    vi.stubGlobal('IntersectionObserverEntry', LegacyEntry);
+    mount();
+
+    expect(init()).toBeUndefined();
+    expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('IntersectionObserver'));
+  });
+
+  it('sets the global custom properties when init() runs before <body> exists', () => {
+    // A classic <script> in <head>: body is null until the parser reaches it.
+    mount();
+    const body = document.body;
+    Object.defineProperty(document, 'body', { get: () => null, configurable: true });
+    try {
+      init({ startEvent: 'app:ready' });
+    } finally {
+      delete (document as { body?: unknown }).body;
+    }
+    expect(document.body).toBe(body);
+
+    document.dispatchEvent(new Event('app:ready'));
+
+    expect(document.body.style.getPropertyValue('--motus-duration')).toBe('400ms');
+  });
+
   it('refreshes immediately when the document has already loaded', () => {
     mount();
     init();
@@ -126,6 +155,50 @@ describe('init()', () => {
 
     expect(listener).toHaveBeenCalledTimes(1);
     document.removeEventListener('motus:in', listener);
+  });
+});
+
+describe('startEvent timing', () => {
+  const original = Object.getOwnPropertyDescriptor(document, 'readyState');
+  const setReadyState = (state: DocumentReadyState) =>
+    Object.defineProperty(document, 'readyState', { value: state, configurable: true });
+
+  afterEach(() => {
+    if (original) Object.defineProperty(document, 'readyState', original);
+    else delete (document as { readyState?: unknown }).readyState;
+  });
+
+  const isReady = () => document.body.classList.contains('motus-ready');
+
+  it("starts at once for 'load' when the page has already loaded", () => {
+    // The listener alone would wait for an event that already fired.
+    setReadyState('complete');
+    mount();
+    init({ startEvent: 'load' });
+    settleFrames();
+
+    expect(isReady()).toBe(true);
+  });
+
+  it("waits for the load event for 'load' while the document is interactive", () => {
+    setReadyState('interactive');
+    mount();
+    init({ startEvent: 'load' });
+    settleFrames();
+    expect(isReady()).toBe(false);
+
+    window.dispatchEvent(new Event('load'));
+    settleFrames();
+    expect(isReady()).toBe(true);
+  });
+
+  it("starts at once for 'DOMContentLoaded' while the document is interactive", () => {
+    setReadyState('interactive');
+    mount();
+    init();
+    settleFrames();
+
+    expect(isReady()).toBe(true);
   });
 });
 
@@ -171,6 +244,103 @@ describe('the ready sequence', () => {
     refresh();
 
     expect(added.classList.contains('motus-animate')).toBe(true);
+  });
+});
+
+describe('teardown during pending frames', () => {
+  it('does not add motus-ready after destroy()', () => {
+    // A stale ready class would make the next init() skip its two frames.
+    mount();
+    init();
+    destroy();
+    raf.flushAll();
+
+    expect(document.body.classList.contains('motus-ready')).toBe(false);
+  });
+
+  it('restarts the ready sequence when a rebuild lands inside it', () => {
+    mount();
+    init();
+    raf.flush();
+
+    refresh();
+    raf.flush();
+    expect(document.body.classList.contains('motus-ready')).toBe(false);
+
+    raf.flush();
+    expect(document.body.classList.contains('motus-ready')).toBe(true);
+    expect(raf.queue.size).toBe(0);
+  });
+
+  it('does not re-init when a mutation batch is still pending at destroy()', async () => {
+    mount();
+    init();
+    settleFrames();
+
+    document.body.insertAdjacentHTML('beforeend', '<div data-motus="fade"></div>');
+    const added = document.body.lastElementChild as HTMLElement;
+    // MutationObserver delivers on a microtask; the rebuild waits for a frame.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    destroy();
+    const before = MockIntersectionObserver.instances.length;
+    raf.flushAll();
+
+    expect(MockIntersectionObserver.instances).toHaveLength(before);
+    expect(added.classList.contains('motus-init')).toBe(false);
+  });
+});
+
+describe('resize', () => {
+  // Only the timers the debounce uses: faking rAF would bypass the frame stub.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const resizeTo = (height: number) => {
+    setViewportHeight(height);
+    window.dispatchEvent(new Event('resize'));
+    vi.advanceTimersByTime(DEFAULTS.debounceDelay);
+  };
+
+  it('skips the rebuild on a height change when no placement reads the height', () => {
+    // The default top-bottom rootMargin ignores the height; a mobile URL bar
+    // toggling must not tear every observer down mid-scroll.
+    mount();
+    init();
+    settleFrames();
+    const before = MockIntersectionObserver.instances.length;
+
+    resizeTo(700);
+
+    expect(MockIntersectionObserver.instances).toHaveLength(before);
+  });
+
+  it('rebuilds on a height change for a height-dependent placement', () => {
+    mount();
+    init({ anchorPlacement: 'center-center' });
+    settleFrames();
+    const before = MockIntersectionObserver.instances.length;
+
+    resizeTo(700);
+
+    expect(MockIntersectionObserver.instances.length).toBeGreaterThan(before);
+  });
+
+  it('rebuilds when a single element overrides to a height-dependent placement', () => {
+    const els = mount(2);
+    els[1]!.setAttribute('data-motus-anchor-placement', 'top-top');
+    init();
+    settleFrames();
+    const before = MockIntersectionObserver.instances.length;
+
+    resizeTo(700);
+
+    expect(MockIntersectionObserver.instances.length).toBeGreaterThan(before);
   });
 });
 

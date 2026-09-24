@@ -8,7 +8,8 @@ import { resetAnimatedState } from './observers/animatedState.js';
 import { buildConfigs } from './observers/elementConfig.js';
 import { createObserver } from './observers/intersection.js';
 import { watch } from './observers/mutation.js';
-import type { BreakpointName, MotusOptions, MotusUserOptions, ObserverHandle } from './types.js';
+import type { MutationHandle } from './observers/mutation.js';
+import type { MotusOptions, MotusUserOptions, ObserverHandle } from './types.js';
 import { normalizeOptions } from './validate.js';
 
 interface TrackedListener {
@@ -19,10 +20,12 @@ interface TrackedListener {
 
 let elements: HTMLElement[] = [];
 let observers: ObserverHandle | null = null;
-let mutationObs: MutationObserver | null = null;
+let mutationObs: MutationHandle | null = null;
 let listeners: TrackedListener[] = [];
 let initialized = false;
 let lastWindowHeight: number | null = null;
+/** The pending frame of the ready sequence, so a teardown can cancel it. */
+let readyFrame = 0;
 let options: MotusOptions = { ...DEFAULTS };
 
 /** Every listener goes through here so `destroy()` can remove all of them. */
@@ -40,20 +43,34 @@ const collectElements = (): HTMLElement[] => [
  * name is meaningless without the breakpoint map it indexes into.
  */
 const isDisabled = (opts: MotusOptions): boolean => {
-  const { disable } = opts;
+  if (document.documentElement.hasAttribute(DISABLED_ATTR)) return true;
 
-  return (
-    document.documentElement.hasAttribute(DISABLED_ATTR) ||
-    disable === true ||
-    // A tier name means *below* that tier, so `'lg'` covers everything narrower.
-    (typeof disable === 'string' &&
-      disable in opts.breakpoints &&
-      detect.below(opts.breakpoints[disable as BreakpointName])) ||
-    (disable === 'mobile' && detect.mobile()) ||
-    (disable === 'phone' && detect.phone()) ||
-    (disable === 'tablet' && detect.tablet()) ||
-    (typeof disable === 'function' && disable() === true)
-  );
+  const { disable } = opts;
+  if (typeof disable === 'function') return disable() === true;
+  if (typeof disable !== 'string') return disable === true;
+
+  switch (disable) {
+    case 'mobile':
+      return detect.mobile();
+    case 'phone':
+      return detect.phone();
+    case 'tablet':
+      return detect.tablet();
+    default:
+      // A tier name means *below* that tier, so `'lg'` covers everything narrower.
+      return detect.below(opts.breakpoints[disable]);
+  }
+};
+
+/**
+ * True when `startEvent` has already fired, so waiting for it would wait
+ * forever — and the stylesheet keeps every `[data-motus]` element hidden
+ * until the library starts.
+ */
+const hasAlreadyFired = (startEvent: string): boolean => {
+  const { readyState } = document;
+  if (startEvent === 'load') return readyState === 'complete';
+  return startEvent === 'DOMContentLoaded' && readyState !== 'loading';
 };
 
 /**
@@ -83,29 +100,45 @@ const rebuild = (): void => {
    * initial hidden state; only then does `motus-ready` enable transitions and
    * `activate()` add the animate class. Collapsing this makes every
    * above-the-fold element snap to its final position with no animation.
+   *
+   * A second rebuild inside those frames restarts the sequence rather than
+   * queueing another one, so its new elements get their hidden-state paint too.
    */
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
+  cancelAnimationFrame(readyFrame);
+  readyFrame = requestAnimationFrame(() => {
+    readyFrame = requestAnimationFrame(() => {
+      readyFrame = 0;
       document.body.classList.add(CLASS_READY);
       observers?.activate();
     });
   });
 };
 
-/** First run: flips the initialised flag, then builds. */
+/**
+ * First run: flips the initialised flag, sets the global custom properties,
+ * then builds.
+ *
+ * The properties are set here rather than in `init()` because `<body>` is null
+ * when `init()` runs from a `<head>` script, and nothing reads them before
+ * `motus-ready` is added anyway.
+ */
 const start = (): void => {
   initialized = true;
+  setGlobalVars(options);
   rebuild();
 };
 
 /**
- * `rootMargin` is vertical-only, so a width-only resize needs no rebuild.
- * Mobile browsers fire `resize` on every URL-bar show/hide, which would
- * otherwise tear down and recreate every observer mid-scroll.
+ * `rootMargin` is vertical-only, so a width-only resize needs no rebuild. Nor
+ * does a height change when every pool uses a `*-bottom` placement (the
+ * default), whose `rootMargin` ignores the height. That second check is what
+ * spares mobile pages: the URL bar showing and hiding changes `innerHeight`,
+ * and would otherwise tear down and recreate every observer mid-scroll.
  */
 const handleResize = (): void => {
   if (!initialized) return;
   if (lastWindowHeight === window.innerHeight) return;
+  if (observers && !observers.heightDependent) return;
   rebuild();
 };
 
@@ -146,6 +179,9 @@ const disable = (): void => {
 
   mutationObs?.disconnect();
   mutationObs = null;
+
+  cancelAnimationFrame(readyFrame);
+  readyFrame = 0;
 
   observers?.disconnect();
   observers = null;
@@ -215,8 +251,6 @@ export const init = (settings?: MotusUserOptions): HTMLElement[] | undefined => 
     mutationObs = watch(refreshHard);
   }
 
-  setGlobalVars(options);
-
   if (options.startEvent === 'DOMContentLoaded' || options.startEvent === 'load') {
     listen(window, 'load', () => {
       // Guarded so the first run does not happen twice when DOMContentLoaded
@@ -227,12 +261,7 @@ export const init = (settings?: MotusUserOptions): HTMLElement[] | undefined => 
     listen(document, options.startEvent, () => start());
   }
 
-  if (
-    options.startEvent === 'DOMContentLoaded' &&
-    (document.readyState === 'complete' || document.readyState === 'interactive')
-  ) {
-    start();
-  }
+  if (hasAlreadyFired(options.startEvent)) start();
 
   listen(window, 'resize', debounce(handleResize, options.debounceDelay));
 

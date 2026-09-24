@@ -120,6 +120,8 @@ export interface ObserverHandle {
   /** Enable callbacks and animate anything already on screen. */
   activate(): void;
   disconnect(): void;
+  /** Whether any pool's `rootMargin` was built from the viewport height. */
+  readonly heightDependent: boolean;
 }
 
 export interface MotusApi {

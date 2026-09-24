@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getRootMargin, getThreshold } from '../../src/observers/rootMargin.js';
+import { dependsOnHeight, getRootMargin, getThreshold } from '../../src/observers/rootMargin.js';
+import { ANCHOR_PLACEMENTS } from '../../src/defaults.js';
 import type { AnchorPlacement } from '../../src/types.js';
 
 describe('getRootMargin', () => {
@@ -39,6 +40,18 @@ describe('getRootMargin', () => {
 
   it('reads window.innerHeight when no height is supplied', () => {
     expect(getRootMargin('top-top', 100)).toBe('100px 0px -700px 0px');
+  });
+});
+
+describe('dependsOnHeight', () => {
+  // Derived from getRootMargin itself, so the two switches cannot drift.
+  it.each([...ANCHOR_PLACEMENTS])('%s matches what getRootMargin actually reads', (placement) => {
+    const reads = getRootMargin(placement, 120, 600) !== getRootMargin(placement, 120, 800);
+    expect(dependsOnHeight(placement)).toBe(reads);
+  });
+
+  it('is false for the default placement', () => {
+    expect(dependsOnHeight('top-bottom')).toBe(false);
   });
 });
 

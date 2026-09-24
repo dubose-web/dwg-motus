@@ -58,6 +58,21 @@ describe('mutation observer', () => {
     expect(callback).not.toHaveBeenCalled();
   });
 
+  it('drops a pending batch on disconnect()', async () => {
+    // The callback is refreshHard(), which would re-init a destroyed library.
+    const callback = vi.fn();
+    const handle = watch(callback);
+
+    const el = document.createElement('div');
+    el.setAttribute('data-motus', 'fade');
+    document.body.appendChild(el);
+
+    await settle();
+    handle.disconnect();
+    raf.flushAll();
+    expect(callback).not.toHaveBeenCalled();
+  });
+
   it('batches a burst of additions into a single callback', async () => {
     const callback = vi.fn();
     watch(callback);

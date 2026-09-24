@@ -1,8 +1,8 @@
 import { EVENT_IN, EVENT_OUT } from '../constants.js';
 import { addClasses, fireEvent, removeClasses } from '../helpers/dom.js';
-import type { ElementConfig, ObserverHandle } from '../types.js';
+import type { AnchorPlacement, ElementConfig, ObserverHandle } from '../types.js';
 import { setAnimated } from './animatedState.js';
-import { getRootMargin, getThreshold } from './rootMargin.js';
+import { dependsOnHeight, getRootMargin, getThreshold } from './rootMargin.js';
 
 interface Pool {
   observer: IntersectionObserver;
@@ -54,6 +54,7 @@ export const createObserver = (
    * straight to their final state with no visible transition.
    */
   let activated = false;
+  let heightDependent = false;
 
   const pools = new Map<string, Pool>();
 
@@ -88,6 +89,31 @@ export const createObserver = (
     }
   };
 
+  const createPool = (anchorPlacement: AnchorPlacement, offset: number): Pool => {
+    if (dependsOnHeight(anchorPlacement)) heightDependent = true;
+
+    // The callback only runs after observe(), by which time `pool` is assigned.
+    const pool: Pool = {
+      targets: new Map(),
+      buffered: [],
+      observer: new IntersectionObserver(
+        (entries) => {
+          if (!activated) {
+            pool.buffered.push(...entries);
+            return;
+          }
+          for (const entry of entries) handleEntry(entry, pool);
+        },
+        {
+          rootMargin: getRootMargin(anchorPlacement, offset, windowHeight),
+          threshold: getThreshold(anchorPlacement),
+        },
+      ),
+    };
+
+    return pool;
+  };
+
   for (const config of configs) {
     // A finished `once` config can only produce callbacks it would ignore.
     // Skipping before pooling leaves the unobserve rule intact — the config
@@ -98,22 +124,7 @@ export const createObserver = (
     let pool = pools.get(key);
 
     if (!pool) {
-      const targets = new Map<Element, ElementConfig[]>();
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (!activated) {
-            pool!.buffered.push(...entries);
-            return;
-          }
-          for (const entry of entries) handleEntry(entry, pool!);
-        },
-        {
-          rootMargin: getRootMargin(config.anchorPlacement, config.offset, windowHeight),
-          threshold: getThreshold(config.anchorPlacement),
-        },
-      );
-
-      pool = { observer, targets, buffered: [] };
+      pool = createPool(config.anchorPlacement, config.offset);
       pools.set(key, pool);
     }
 
@@ -127,6 +138,8 @@ export const createObserver = (
   }
 
   return {
+    heightDependent,
+
     disconnect: () => {
       for (const pool of pools.values()) pool.observer.disconnect();
       pools.clear();

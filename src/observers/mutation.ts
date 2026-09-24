@@ -17,6 +17,11 @@ const containsMotusNode = (nodes: NodeList): boolean => {
   return false;
 };
 
+export interface MutationHandle {
+  /** Stops watching and drops any batch still waiting for its frame. */
+  disconnect(): void;
+}
+
 /**
  * Watches the document for dynamically added `[data-motus]` elements.
  *
@@ -25,24 +30,33 @@ const containsMotusNode = (nodes: NodeList): boolean => {
  *
  * Callbacks are batched into a single frame: framework hydration that appends
  * 200 elements should rebuild the observers once, not 200 times.
+ *
+ * `disconnect()` cancels that frame as well. The callback is `refreshHard()`,
+ * which re-runs `init()` when the library is not initialised, so a batch that
+ * outlives `destroy()` would bring the whole library back.
  */
-export const watch = (callback: () => void): MutationObserver => {
-  let scheduled = false;
+export const watch = (callback: () => void): MutationHandle => {
+  let frame = 0;
 
   const observer = new MutationObserver((mutations) => {
-    if (scheduled) return;
+    if (frame !== 0) return;
 
     const hasNewElements = mutations.some((mutation) => containsMotusNode(mutation.addedNodes));
     if (!hasNewElements) return;
 
-    scheduled = true;
-    requestAnimationFrame(() => {
-      scheduled = false;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
       callback();
     });
   });
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  return observer;
+  return {
+    disconnect: () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      frame = 0;
+    },
+  };
 };

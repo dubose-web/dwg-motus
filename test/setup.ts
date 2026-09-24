@@ -122,19 +122,23 @@ export class MockIntersectionObserver implements IntersectionObserver {
   }
 }
 
-/** Queues rAF callbacks so tests can step through frames deliberately. */
+/**
+ * Queues rAF callbacks so tests can step through frames deliberately. Keyed by
+ * request id so `cancelAnimationFrame` can drop one, as the browser would.
+ */
 export const raf = {
-  queue: [] as FrameRequestCallback[],
+  queue: new Map<number, FrameRequestCallback>(),
+  nextId: 1,
   /** Runs one frame. Callbacks scheduled during it wait for the next flush. */
   flush(): void {
-    const pending = raf.queue;
-    raf.queue = [];
+    const pending = [...raf.queue.values()];
+    raf.queue = new Map();
     for (const fn of pending) fn(performance.now());
   },
   /** Runs frames until nothing is left, up to a sane cap. */
   flushAll(limit = 10): void {
     let count = 0;
-    while (raf.queue.length > 0 && count < limit) {
+    while (raf.queue.size > 0 && count < limit) {
       raf.flush();
       count += 1;
     }
@@ -173,12 +177,14 @@ export const BELOW_SM = belowQuery(576);
 export const BELOW_MD = belowQuery(768);
 export const BELOW_LG = belowQuery(992);
 
-/** `isSupported()` feature-detects `intersectionRatio` on the prototype. */
+/** `isSupported()` feature-detects `intersectionRatio` and `isIntersecting` on the prototype. */
 class FakeIntersectionObserverEntry {}
-Object.defineProperty(FakeIntersectionObserverEntry.prototype, 'intersectionRatio', {
-  value: 0,
-  configurable: true,
-});
+for (const name of ['intersectionRatio', 'isIntersecting']) {
+  Object.defineProperty(FakeIntersectionObserverEntry.prototype, name, {
+    value: 0,
+    configurable: true,
+  });
+}
 
 /** happy-dom's innerHeight is not writable by assignment. */
 export const setViewportHeight = (height: number): void => {
@@ -197,13 +203,18 @@ export const setRect = (el: Element, rect: Partial<DOMRect>): void => {
 
 beforeEach(() => {
   MockIntersectionObserver.reset();
-  raf.queue = [];
+  raf.queue = new Map();
 
   vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
   vi.stubGlobal('IntersectionObserverEntry', FakeIntersectionObserverEntry);
   vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => {
-    raf.queue.push(fn);
-    return raf.queue.length;
+    const id = raf.nextId;
+    raf.nextId += 1;
+    raf.queue.set(id, fn);
+    return id;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+    raf.queue.delete(id);
   });
 
   // The SSR spec runs this same setup under the `node` environment.

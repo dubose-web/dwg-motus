@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- `destroy()` no longer brings the library back when a batch of newly added `[data-motus]`
+  elements was still waiting for its frame.
+- A `destroy()` or disable during the two start-up frames no longer leaves `motus-ready` on
+  `<body>`. Before, that made the next `init()` skip the first paint and snap elements into place.
+- `startEvent: 'load'` now starts at once when `init()` runs after the page has loaded, instead
+  of waiting forever with the content hidden.
+- The global `--motus-*` custom properties are now set when `init()` runs from a `<head>`
+  script. Before, they were skipped and every transition was instant.
+- `useClassNames` splits the `data-motus` value on any whitespace, so a tab or newline no longer
+  makes `classList.add` throw.
+- Option validation now also covers `animatedClassName` and `initClassName` (must be `false` or
+  a single class name), non-string `disable` values, and inherited keys like `toString`.
+
+### Performance
+
+- A viewport-height change no longer rebuilds the observers when every element uses a
+  `*-bottom` anchor placement (the default `top-bottom` among them), because their trigger zone
+  does not depend on the height. On mobile this skips a rebuild every time the URL bar shows or
+  hides.
+
+### Compatibility
+
+- The browser floor is now Chrome 58, up from 51. Chrome 51–57 shipped IntersectionObserver
+  without `isIntersecting`, so on-screen elements never animated and stayed hidden. Those
+  browsers now take the unsupported path and show all content.
+
 ## 1.0.2
 
 ### Fixes

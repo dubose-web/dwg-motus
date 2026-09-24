@@ -1,0 +1,14 @@
+/// The gate every animation family sits behind. Internal: the family partials
+/// `@use` it, and `motus.scss` does not forward it.
+///
+/// One mixin holds both the reduced-motion query and the "library is running"
+/// selector, so a family rule cannot land outside either. Outside the query,
+/// reduced-motion users would get hidden content; outside the selector, so
+/// would a page where the JS is disabled or never arrives.
+@mixin motus-gate {
+  @media screen and (prefers-reduced-motion: no-preference) {
+    html:not(.no-js):not([data-motus-disabled]):not([data-motus-inactive]) {
+      @content;
+    }
+  }
+}

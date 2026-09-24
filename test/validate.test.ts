@@ -140,4 +140,44 @@ describe('normalizeOptions', () => {
     warnOnce();
     expect(normalizeOptions({ startEvent: '' }).startEvent).toBe('DOMContentLoaded');
   });
+
+  it.each(['toString', 'constructor', 'hasOwnProperty'])(
+    'reports the inherited key "%s" as unknown',
+    (key) => {
+      const warn = warnOnce();
+      normalizeOptions({ [key]: 1 } as MotusUserOptions);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining(`Unknown option "${key}"`));
+    },
+  );
+
+  it.each([1, {}, null])('rejects a disable of %s', (value) => {
+    const warn = warnOnce();
+    const result = normalizeOptions({ disable: value as never });
+    expect(result.disable).toBe(DEFAULTS.disable);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"disable"'));
+  });
+
+  it.each(['animatedClassName', 'initClassName'] as const)(
+    'rejects a %s containing whitespace',
+    (key) => {
+      const warn = warnOnce();
+      const result = normalizeOptions({ [key]: 'is animated' });
+      expect(result[key]).toBe(DEFAULTS[key]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining(`"${key}"`));
+    },
+  );
+
+  it.each(['animatedClassName', 'initClassName'] as const)('rejects a non-string %s', (key) => {
+    warnOnce();
+    expect(normalizeOptions({ [key]: 42 as never })[key]).toBe(DEFAULTS[key]);
+  });
+
+  it.each<string | false>([false, '', 'is-visible'])(
+    'accepts a class name option of %j',
+    (value) => {
+      const warn = warnOnce();
+      normalizeOptions({ animatedClassName: value, initClassName: value });
+      expect(warn).not.toHaveBeenCalled();
+    },
+  );
 });

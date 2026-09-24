@@ -16,6 +16,20 @@ const isNonNegativeNumber = (value: unknown): boolean =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
 /**
+ * `false`, or a string `classList.add` accepts. Whitespace makes it throw —
+ * inside `init()` for `initClassName`, inside an observer callback for
+ * `animatedClassName`. An empty string is allowed: it is falsy, so the library
+ * treats it like `false` and never hands it to `classList`.
+ */
+const isClassNameOption = (value: unknown): boolean =>
+  value === false || (typeof value === 'string' && !/\s/.test(value));
+
+const isDisableOption = (value: unknown): boolean =>
+  typeof value === 'boolean' ||
+  typeof value === 'function' ||
+  (typeof value === 'string' && DISABLE_VALUES.includes(value));
+
+/**
  * Merges user settings over the defaults, clamps what needs clamping, and
  * reports every problem in a single grouped warning so one typo does not
  * produce a wall of console noise.
@@ -24,7 +38,8 @@ export const normalizeOptions = (settings: MotusUserOptions = {}): MotusOptions 
   const problems: string[] = [];
 
   for (const key of Object.keys(settings)) {
-    if (!(key in DEFAULTS)) {
+    // Own keys only: `in` walks the prototype, so `toString` would pass.
+    if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) {
       problems.push(`Unknown option "${key}".`);
     }
   }
@@ -47,7 +62,7 @@ export const normalizeOptions = (settings: MotusUserOptions = {}): MotusOptions 
     options.anchorPlacement = DEFAULTS.anchorPlacement as AnchorPlacement;
   }
 
-  if (typeof options.disable === 'string' && !DISABLE_VALUES.includes(options.disable)) {
+  if (!isDisableOption(options.disable)) {
     problems.push(
       `"disable" must be a boolean, a function, or one of ${DISABLE_VALUES.join(', ')}. Using ${String(DEFAULTS.disable)}.`,
     );
@@ -70,6 +85,15 @@ export const normalizeOptions = (settings: MotusUserOptions = {}): MotusOptions 
         `"breakpoints.${name}" must be a positive number, received ${String(width)}. Using ${DEFAULTS.breakpoints[name]}.`,
       );
       options.breakpoints[name] = DEFAULTS.breakpoints[name];
+    }
+  }
+
+  for (const key of ['animatedClassName', 'initClassName'] as const) {
+    if (!isClassNameOption(options[key])) {
+      problems.push(
+        `"${key}" must be false or a single class name, received ${JSON.stringify(options[key])}. Using ${String(DEFAULTS[key])}.`,
+      );
+      options[key] = DEFAULTS[key];
     }
   }
 

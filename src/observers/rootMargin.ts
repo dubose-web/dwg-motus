@@ -36,6 +36,27 @@ export const getRootMargin = (
 };
 
 /**
+ * Whether `getRootMargin` reads the viewport height for this placement.
+ *
+ * The `*-bottom` placements (the default among them) only subtract the offset,
+ * so a height change leaves their observers valid and `handleResize()` can skip
+ * the rebuild. Kept beside `getRootMargin` so the two switch on the same cases.
+ */
+export const dependsOnHeight = (anchorPlacement: AnchorPlacement): boolean => {
+  switch (anchorPlacement) {
+    case 'top-center':
+    case 'center-center':
+    case 'bottom-center':
+    case 'top-top':
+    case 'center-top':
+    case 'bottom-top':
+      return true;
+    default:
+      return false;
+  }
+};
+
+/**
  * `center-*` placements wait until the element is half visible. The `bottom-*`
  * placements stay at 0 because `rootMargin` already compensates for element
  * height.
