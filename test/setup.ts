@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 
 /**
- * What a test supplies for one entry. `boundingClientRect` comes from the
- * target (see `setRect`); `rootBounds` defaults to null, as for a root the
- * browser will not expose.
+ * The fields a test supplies for one entry.
+ *
+ * `boundingClientRect` comes from the target; `rootBounds` defaults to null.
  */
 interface EntryInit {
   target: Element;
@@ -14,9 +14,9 @@ interface EntryInit {
 /**
  * A controllable IntersectionObserver.
  *
- * happy-dom does not implement one, which is useful here: tests drive the
- * callbacks by hand and can assert exactly which targets were observed and when
- * they were released.
+ * happy-dom doesn't implement one, which suits us: tests
+ * drive the callbacks by hand, and can assert exactly
+ * which of the targets were observed and released.
  */
 export class MockIntersectionObserver implements IntersectionObserver {
   static instances: MockIntersectionObserver[] = [];
@@ -39,13 +39,18 @@ export class MockIntersectionObserver implements IntersectionObserver {
 
   observe(target: Element): void {
     this.observed.add(target);
-    // A real IntersectionObserver computes and queues an initial record for
-    // every target shortly after observe(). Modelling that is what lets the
-    // library replay it in activate().
+    // We model the initial record a real IntersectionObserver
+    // queues shortly after `observe()`, since that is what
+    // lets the library replay it in `activate()` later.
     this.queueRecords([{ target, isIntersecting: this.intersects(target) }]);
   }
 
-  /** Applies this observer's own rootMargin and threshold, as the browser would. */
+  /**
+   * Determine if the target intersects, using this observer's own settings.
+   *
+   * @param target
+   * @returns
+   */
   private intersects(target: Element): boolean {
     const [marginTop, , marginBottom] = this.rootMargin
       .split(/\s+/)
@@ -75,7 +80,9 @@ export class MockIntersectionObserver implements IntersectionObserver {
     this.disconnected = true;
   }
 
-  /** Records the browser has computed but not yet dispatched. */
+  /**
+   * The records the browser has computed but not yet dispatched.
+   */
   private pending: IntersectionObserverEntry[] = [];
 
   takeRecords(): IntersectionObserverEntry[] {
@@ -96,15 +103,21 @@ export class MockIntersectionObserver implements IntersectionObserver {
     })) as IntersectionObserverEntry[];
   }
 
-  /** Dispatches to the callback, as the browser does on each observation pass. */
+  /**
+   * Dispatch the given entries, as the browser does on each observation pass.
+   *
+   * @param entries
+   */
   trigger(entries: EntryInit[]): void {
     this.callback(MockIntersectionObserver.entries(entries), this);
   }
 
   /**
-   * Computes records without dispatching them, so `takeRecords()` can drain
-   * them. Models the window where the browser has observed but not yet called
-   * back.
+   * Compute records without dispatching them, for `takeRecords()` to drain.
+   *
+   * This models the window where the browser has observed but not called back.
+   *
+   * @param entries
    */
   queueRecords(entries: EntryInit[]): void {
     this.pending.push(...MockIntersectionObserver.entries(entries));
@@ -123,19 +136,26 @@ export class MockIntersectionObserver implements IntersectionObserver {
 }
 
 /**
- * Queues rAF callbacks so tests can step through frames deliberately. Keyed by
- * request id so `cancelAnimationFrame` can drop one, as the browser would.
+ * Queue rAF callbacks so tests can step through frames deliberately.
+ *
+ * Keying by id lets `cancelAnimationFrame` drop one, as browsers do.
  */
 export const raf = {
   queue: new Map<number, FrameRequestCallback>(),
   nextId: 1,
-  /** Runs one frame. Callbacks scheduled during it wait for the next flush. */
+  /**
+   * Run one frame, leaving callbacks it schedules for the next flush.
+   */
   flush(): void {
     const pending = [...raf.queue.values()];
     raf.queue = new Map();
     for (const fn of pending) fn(performance.now());
   },
-  /** Runs frames until nothing is left, up to a sane cap. */
+  /**
+   * Run frames until nothing is left, up to a sane cap.
+   *
+   * @param limit
+   */
   flushAll(limit = 10): void {
     let count = 0;
     while (raf.queue.size > 0 && count < limit) {
@@ -145,7 +165,11 @@ export const raf = {
   },
 };
 
-/** Stubs matchMedia so a given set of media queries reports as matching. */
+/**
+ * Stub `matchMedia` so the given media queries report as matching.
+ *
+ * @param matching
+ */
 export const stubMatchMedia = (matching: string[] = []): void => {
   vi.stubGlobal(
     'matchMedia',
@@ -167,9 +191,14 @@ export const COARSE = '(pointer: coarse) and (hover: none)';
 export const COARSE_PHONE = '(pointer: coarse) and (hover: none) and (max-width: 767px)';
 
 /**
- * `stubMatchMedia` matches query strings exactly, so tests have to reproduce
- * what `detect.below()` builds character for character. Derived from the same
- * arithmetic rather than hard-coded, so the two cannot drift.
+ * Build the query `detect.below()` produces for the given width.
+ *
+ * `stubMatchMedia` matches query strings exactly, so tests must
+ * reproduce it character for character; deriving it from the
+ * same arithmetic keeps the pair from drifting over time.
+ *
+ * @param width
+ * @returns
  */
 export const belowQuery = (width: number): string => `(max-width: ${width - 0.02}px)`;
 
@@ -177,7 +206,9 @@ export const BELOW_SM = belowQuery(576);
 export const BELOW_MD = belowQuery(768);
 export const BELOW_LG = belowQuery(992);
 
-/** `isSupported()` feature-detects `intersectionRatio` and `isIntersecting` on the prototype. */
+/**
+ * An entry whose prototype passes the feature checks in `isSupported()`.
+ */
 class FakeIntersectionObserverEntry {}
 for (const name of ['intersectionRatio', 'isIntersecting']) {
   Object.defineProperty(FakeIntersectionObserverEntry.prototype, name, {
@@ -186,7 +217,11 @@ for (const name of ['intersectionRatio', 'isIntersecting']) {
   });
 }
 
-/** happy-dom's innerHeight is not writable by assignment. */
+/**
+ * Set the viewport height, which happy-dom won't allow by assignment.
+ *
+ * @param height
+ */
 export const setViewportHeight = (height: number): void => {
   Object.defineProperty(window, 'innerHeight', {
     value: height,
@@ -195,7 +230,12 @@ export const setViewportHeight = (height: number): void => {
   });
 };
 
-/** Positions an element via a stubbed getBoundingClientRect. */
+/**
+ * Position an element through a stubbed `getBoundingClientRect`.
+ *
+ * @param el
+ * @param rect
+ */
 export const setRect = (el: Element, rect: Partial<DOMRect>): void => {
   el.getBoundingClientRect = () =>
     ({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, ...rect }) as DOMRect;
@@ -217,7 +257,7 @@ beforeEach(() => {
     raf.queue.delete(id);
   });
 
-  // The SSR spec runs this same setup under the `node` environment.
+  // We bail here, as the SSR spec runs this same setup under `node`.
   if (typeof document === 'undefined') return;
 
   stubMatchMedia([]);

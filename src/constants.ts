@@ -1,28 +1,34 @@
 /**
- * Every literal string the library writes to or reads from the DOM.
+ * Define every literal string the library reads from or writes to the DOM.
  *
- * Single source of truth so the attribute/class/event prefix can never end up
- * half-renamed across modules.
+ * Keeping them in one module stops a prefix from ending up half-renamed.
  */
 
-/** Attribute that marks an element for animation: `data-motus="fade-up"`. */
+/**
+ * The attribute that marks an element for animation: `data-motus="fade-up"`.
+ */
 export const ATTR = 'data-motus';
 
-/** Attribute on `<html>` that disables the library in both CSS and JS. Set by the consumer. */
+/**
+ * The attribute a consumer sets on `<html>` to disable the library.
+ */
 export const DISABLED_ATTR = 'data-motus-disabled';
 
 /**
- * Attribute on `<html>` that the library sets on itself when it is not running
- * — disabled by option, unsupported browser, or torn down.
+ * The attribute the library sets on `<html>` whenever it is not running.
  *
- * Deliberately separate from `DISABLED_ATTR`: the CSS hides `[data-motus]`
- * elements until they animate, so something has to tell it to reveal them when
- * no JS will ever arrive to do it. Reusing `DISABLED_ATTR` would be read back
- * by `isDisabled()` on the next `init()` and wedge the library off for good.
+ * The CSS hides `[data-motus]` until it animates, so this reveals it.
+ *
+ * Reusing `DISABLED_ATTR` would have `isDisabled()` wedge the library off.
  */
 export const INACTIVE_ATTR = 'data-motus-inactive';
 
-/** Builds a per-option attribute name, e.g. `attr('delay')` -> `data-motus-delay`. */
+/**
+ * Get the attribute name for the given option key.
+ *
+ * @param key
+ * @returns
+ */
 export const attr = (key: string): string => `${ATTR}-${key}`;
 
 export const CLASS_READY = 'motus-ready';
@@ -36,5 +42,7 @@ export const EVENT_OUT = 'motus:out';
 
 export type MotusEventName = typeof EVENT_IN | typeof EVENT_OUT;
 
-/** Prefix for every console warning the library emits. */
+/**
+ * The prefix for every console warning the library emits.
+ */
 export const LOG_PREFIX = '[dwg-motus]';

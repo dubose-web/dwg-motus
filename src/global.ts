@@ -1,9 +1,7 @@
 /**
- * UMD-only entry.
+ * Expose the API as the UMD bundle's single default export.
  *
- * It carries a single default export so Rollup's `exports: 'default'` is
- * unambiguous and `window.Motus` is the API object itself rather than
- * `{ default: ... }`.
+ * That keeps Rollup's `exports: 'default'` unambiguous for `window.Motus`.
  */
 import Motus from './index.js';
 

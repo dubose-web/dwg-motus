@@ -25,7 +25,7 @@ describe('getInlineOption', () => {
   });
 
   it('preserves "0" instead of falling back', () => {
-    // The `??` vs `||` regression: "0" is falsy but meaningful.
+    // This is the `??` versus `||` regression: `"0"` is falsy but meaningful.
     expect(getInlineOption(el({ 'data-motus-delay': '0' }), 'delay', 500)).toBe('0');
     expect(getInlineOption(el({ 'data-motus-offset': '0' }), 'offset', 120)).toBe('0');
   });

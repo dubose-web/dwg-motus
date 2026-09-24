@@ -5,15 +5,19 @@ import * as sass from 'sass';
 import { CSS_TARGETS } from '../scripts/build-css.mjs';
 import { describe, expect, it } from 'vitest';
 
-// Reuses the build's own map, so the test cannot drift from what ships.
+// We reuse the build's own map, so the test can't drift from what ships.
 const entry = (name: string) =>
   fileURLToPath(new URL(`../${CSS_TARGETS[name as keyof typeof CSS_TARGETS]}`, import.meta.url));
 
 const loadPaths = [fileURLToPath(new URL('../scss', import.meta.url))];
 
 /**
- * Sass emits attribute selectors unquoted (`[data-motus=fade]`); strip quotes so
- * the assertions below read the same way the source does.
+ * Strip the quotes from compiled attribute selectors.
+ *
+ * Sass emits them unquoted, so the assertions read the same as the source.
+ *
+ * @param css
+ * @returns
  */
 const unquote = (css: string): string => css.replace(/"/g, '');
 
@@ -37,8 +41,9 @@ describe('the full bundle', () => {
   });
 
   it('namespaces every selector and custom property under motus', () => {
-    // Guards against a stray prefix creeping in: every attribute selector and
-    // every custom property the stylesheet touches must be a motus one.
+    // We guard against a stray prefix creeping in, since
+    // each attribute selector and custom property the
+    // stylesheet touches must be a motus one, too.
     const attributeSelectors = [...new Set(css.match(/\[data-[a-z-]+/g) ?? [])];
     expect(attributeSelectors.length).toBeGreaterThan(0);
     expect(attributeSelectors.every((name) => name.startsWith('[data-motus'))).toBe(true);
@@ -67,16 +72,16 @@ describe('accessibility contract', () => {
   });
 
   it.each(FAMILIES)('%s reveals its elements when the library is inactive', (family) => {
-    // Without this the hidden initial state outlives a disabled library and
-    // the page renders blank. `disable()` sets the attribute; see motus.ts.
+    // Without this, the hidden initial state would outlive a
+    // disabled library and leave the page blank, which is
+    // why `disable()` sets that attribute in motus.ts.
     expect(compile(family)).toContain(':not([data-motus-inactive])');
   });
 });
 
 describe('specificity contract', () => {
   it.each(FAMILIES)('%s doubles its family attribute selector', (family) => {
-    // The duplication is deliberate: it lifts the family base rule above a
-    // single-attribute override in consuming CSS.
+    // We duplicate it to lift the family rule over a single-attribute override.
     expect(compile(family)).toContain(`[data-motus^=${family}][data-motus^=${family}]`);
   });
 });

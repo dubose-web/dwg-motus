@@ -1,9 +1,14 @@
 import type { AnchorPlacement } from '../types.js';
 
 /**
- * Translates an anchor placement into an IntersectionObserver `rootMargin`.
+ * Get the IntersectionObserver `rootMargin` for an anchor placement.
  *
- * Pure and exported so the arithmetic can be unit-tested without a DOM.
+ * It is pure and exported so the arithmetic can be tested without a DOM.
+ *
+ * @param anchorPlacement
+ * @param offset
+ * @param windowHeight
+ * @returns
  */
 export const getRootMargin = (
   anchorPlacement: AnchorPlacement,
@@ -14,8 +19,9 @@ export const getRootMargin = (
     case 'top-center':
     case 'center-center':
     case 'bottom-center': {
-      // Clamped to at least 1px: a margin that collapses the root to zero
-      // height would never intersect anything.
+      // We clamp this to at least 1px, so an offset past
+      // half the viewport keeps the root inset rather
+      // than turning the margin into an expansion.
       const centerMargin = Math.max(Math.round(windowHeight / 2) - offset, 1);
       return `${-centerMargin}px 0px ${-centerMargin}px 0px`;
     }
@@ -36,11 +42,16 @@ export const getRootMargin = (
 };
 
 /**
- * Whether `getRootMargin` reads the viewport height for this placement.
+ * Determine if `getRootMargin` uses the viewport height for a placement.
  *
- * The `*-bottom` placements (the default among them) only subtract the offset,
- * so a height change leaves their observers valid and `handleResize()` can skip
- * the rebuild. Kept beside `getRootMargin` so the two switch on the same cases.
+ * The `*-bottom` placements, the default among them, only
+ * subtract the offset, so a height change leaves their
+ * observers valid, and calls for no rebuild at all.
+ *
+ * It sits beside `getRootMargin` so the two switch on the same cases.
+ *
+ * @param anchorPlacement
+ * @returns
  */
 export const dependsOnHeight = (anchorPlacement: AnchorPlacement): boolean => {
   switch (anchorPlacement) {
@@ -57,9 +68,12 @@ export const dependsOnHeight = (anchorPlacement: AnchorPlacement): boolean => {
 };
 
 /**
- * `center-*` placements wait until the element is half visible. The `bottom-*`
- * placements stay at 0 because `rootMargin` already compensates for element
- * height.
+ * Get the IntersectionObserver threshold for an anchor placement.
+ *
+ * `center-*` waits for half the element, and the rest fire on any overlap.
+ *
+ * @param anchorPlacement
+ * @returns
  */
 export const getThreshold = (anchorPlacement: AnchorPlacement): number => {
   switch (anchorPlacement) {

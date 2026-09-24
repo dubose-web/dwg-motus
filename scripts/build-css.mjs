@@ -1,13 +1,13 @@
 /**
- * Compiles the Sass partials into dist/css/, one stylesheet per family.
+ * Compile the Sass partials into `dist/css/`, one stylesheet per family.
  *
- * Rollup's library mode emits a single stylesheet per build, so CSS is built
- * here instead. The JS entry deliberately imports no CSS, so nothing about this
- * has to coordinate with the Rollup passes.
+ * Rollup emits one stylesheet per build, so the CSS is built here instead.
  *
- * Source maps are emitted for local development only. They are not published:
- * they would reference .scss files by absolute path and roughly double the
- * size of the package for no consumer benefit.
+ * The JS entry imports no CSS, so none of this coordinates with Rollup.
+ *
+ * Source maps are emitted for local development only, as
+ * they would reference `.scss` files by absolute path
+ * and roughly double the package size for nothing.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -18,11 +18,11 @@ import postcss from 'postcss';
 import * as sass from 'sass';
 
 /**
- * Output name -> the partial it is compiled from.
+ * The output names, each mapped to the partial it is compiled from.
  *
- * The partials are compiled directly; there are no wrapper entry files, since
- * none of them need more than one `@use`. `motus` is the consumer-facing
- * bundle, which forwards the config and pulls in core plus every family.
+ * The partials compile directly, as none needs more than one `@use`.
+ *
+ * `motus` is the consumer bundle, forwarding the config plus every family.
  */
 export const CSS_TARGETS = {
   core: 'scss/core.scss',
@@ -35,10 +35,16 @@ export const CSS_TARGETS = {
 
 const OUT = 'dist/css';
 
+/**
+ * Compile every target stylesheet into `dist/css/`.
+ *
+ * @param  {{ dev?: boolean }}  [options]
+ * @returns {Promise<void>}
+ */
 export const buildCss = async ({ dev = false } = {}) => {
   mkdirSync(resolve(OUT), { recursive: true });
 
-  // autoprefixer and cssnano both read the `browserslist` field in package.json.
+  // We let autoprefixer and cssnano read `browserslist` from package.json.
   const plugins = [autoprefixer()];
   if (!dev) {
     plugins.push(cssnano({ preset: ['default', { discardComments: { removeAll: true } }] }));
@@ -50,7 +56,7 @@ export const buildCss = async ({ dev = false } = {}) => {
     const to = resolve(OUT, `${name}.css`);
 
     const compiled = sass.compile(from, {
-      // cssnano does the minifying; keep sass output readable.
+      // We keep the Sass output readable, since cssnano does the minifying.
       style: 'expanded',
       loadPaths: [resolve('scss')],
       sourceMap: dev,
@@ -75,7 +81,7 @@ export const buildCss = async ({ dev = false } = {}) => {
 const watchMode = process.argv.includes('--watch');
 const isDev = process.env.NODE_ENV === 'development';
 
-// Only build when run as a script, so the target map can be imported by tests.
+// We only build when run as a script, so tests can import the target map.
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   await buildCss({ dev: isDev });
 
@@ -83,8 +89,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     const { watch } = await import('node:fs');
     console.log('watching scss/ for changes...');
 
-    // A change that lands mid-build sets `pending` and gets one more build
-    // afterwards, rather than being dropped.
+    // We queue one more build for a change that lands mid-build, not drop it.
     let building = false;
     let pending = false;
     let timer;
@@ -105,7 +110,8 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
         pending = true;
         return;
       }
-      // Coalesce the burst of events an editor save produces.
+
+      // We debounce the burst of events that an editor save produces.
       clearTimeout(timer);
       timer = setTimeout(rebuild, 50);
     });

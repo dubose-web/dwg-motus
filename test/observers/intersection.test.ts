@@ -11,7 +11,12 @@ const options = (overrides: Partial<MotusOptions> = {}): MotusOptions => ({
   ...overrides,
 });
 
-/** Adds elements to the document and returns them. */
+/**
+ * Add the given markup to the document and return its elements.
+ *
+ * @param markup
+ * @returns
+ */
 const mount = (...markup: string[]): HTMLElement[] => {
   document.body.innerHTML = markup.join('');
   return [...document.body.querySelectorAll<HTMLElement>('[data-motus]')];
@@ -19,7 +24,11 @@ const mount = (...markup: string[]): HTMLElement[] => {
 
 const build = (elements: HTMLElement[], opts = options()) => buildConfigs(elements, opts);
 
-/** Places every element far below the fold so activate() is a no-op. */
+/**
+ * Place every element far below the fold, so `activate()` does nothing.
+ *
+ * @param elements
+ */
 const offscreen = (elements: Element[]) => {
   for (const el of elements) setRect(el, { top: 5000, bottom: 5200 });
 };
@@ -85,7 +94,7 @@ describe('observer pooling', () => {
       '<div data-motus="fade" data-motus-offset="oops"></div>',
       '<div data-motus="fade"></div>',
     );
-    // Both fall back to the default offset, so they share one observer.
+    // Both fall back to the default offset, so we expect a single observer.
     createObserver(build(els));
     expect(MockIntersectionObserver.instances).toHaveLength(1);
   });
@@ -116,8 +125,7 @@ describe('the activation gate', () => {
 
 describe('activate()', () => {
   it('replays an entry that arrived while the gate was closed', () => {
-    // The browser delivers its first callback before activate() runs. That
-    // entry must be kept, because IO will not re-deliver an unchanged state.
+    // IO won't re-deliver an unchanged state, so we must keep this first entry.
     const els = mount('<div data-motus="fade"></div>');
     const handle = createObserver(build(els));
 
@@ -150,19 +158,17 @@ describe('activate()', () => {
   });
 
   it('trusts the observer over the element position on screen', () => {
-    // The regression. With top-top at offset 120 the trigger band is -120..120,
-    // so an element at 400..500 is plainly on screen but must NOT fire. The old
-    // activate() re-derived the line as `bottom > 0 && top < 800 - 120`, which
-    // ignored anchorPlacement and so fired it.
+    // At `top-top` offset 120 the band is -120..120, so 400..500 must not fire.
     const els = mount('<div data-motus="fade" data-motus-anchor-placement="top-top"></div>');
     setRect(els[0]!, { top: 400, bottom: 500 });
 
+    // The old `activate()` tested `bottom > 0 && top < 800 - 120` and fired it.
     const handle = createObserver(build(els));
     handle.activate();
 
     expect(els[0]!.classList.contains('motus-animate')).toBe(false);
 
-    // Same element under the default placement is inside the band, and fires.
+    // Under the default placement the same element is in the band and fires.
     const others = mount('<div data-motus="fade"></div>');
     setRect(others[0]!, { top: 400, bottom: 500 });
     createObserver(build(others)).activate();
@@ -171,14 +177,13 @@ describe('activate()', () => {
   });
 
   it('performs no layout reads of its own', () => {
-    // All geometry now comes from the observer, so activate() must not measure
-    // anything — there is nothing left to thrash.
+    // Geometry all comes from the observer, so `activate()` measures nothing.
     const els = mount('<div data-motus="fade"></div>', '<div data-motus="fade"></div>');
     const handle = createObserver(build(els));
 
     MockIntersectionObserver.last.trigger(els.map((target) => ({ target, isIntersecting: true })));
 
-    // Counted only from here, so the mock's own rect reads are not included.
+    // We count only from here, so the mock's own rect reads aren't included.
     let reads = 0;
     for (const el of els) {
       el.getBoundingClientRect = () => {
@@ -288,10 +293,19 @@ describe('callbacks', () => {
 });
 
 describe('elements already scrolled past', () => {
-  /** A 2px trigger strip at mid-screen, as `top-center` produces. */
+  /**
+   * A thin trigger strip at mid-screen, as a `*-center` placement produces.
+   */
   const zone = { top: 400, bottom: 402 };
 
-  /** Mounts, builds and places every element; the caller decides when to activate. */
+  /**
+   * Mount, build and place every element, leaving activation to the caller.
+   *
+   * @param markup
+   * @param rect
+   * @param opts
+   * @returns
+   */
   const place = (markup: string, rect: Partial<DOMRect>, opts = options()) => {
     const els = mount(markup);
     for (const el of els) setRect(el, rect);
@@ -411,7 +425,7 @@ describe('unobserving once-elements', () => {
     const anchor = document.querySelector('#anchor')!;
     MockIntersectionObserver.last.trigger([{ target: anchor, isIntersecting: true }]);
 
-    // One config is `once`, the other is not — the anchor must stay observed.
+    // One config is `once` and one isn't, so the anchor must stay observed.
     expect(MockIntersectionObserver.last.unobserved).toHaveLength(0);
   });
 });
@@ -441,8 +455,7 @@ describe('class name handling', () => {
   });
 
   it('splits the data-motus value on any whitespace', () => {
-    // Asserted on the token list: a browser's classList.add throws on a token
-    // containing whitespace, but happy-dom's does not, so the DOM can't show it.
+    // happy-dom's `classList.add` allows whitespace, so we assert on tokens.
     const els = mount('<div data-motus="fadeInUp\n\t animated"></div>');
     const [config] = build(els, options({ useClassNames: true }));
 
@@ -494,7 +507,12 @@ describe('disconnect()', () => {
 });
 
 describe('animated state across rebuilds', () => {
-  /** What rebuild() does: fresh configs over the same nodes, then activate(). */
+  /**
+   * Do what `rebuild()` does: fresh configs over the same nodes, then activate.
+   *
+   * @param els
+   * @param opts
+   */
   const rebuild = (els: HTMLElement[], opts = options()) =>
     createObserver(build(els, opts)).activate();
 
@@ -546,8 +564,8 @@ describe('animated state across rebuilds', () => {
     document.removeEventListener('motus:in', spy);
 
     expect(spy).not.toHaveBeenCalled();
-    // Skipped before pooling: with nothing left to watch, the rebuild does not
-    // construct an observer at all.
+
+    // We skip it before pooling, so the rebuild constructs no observer at all.
     expect(MockIntersectionObserver.instances).toHaveLength(before);
   });
 
@@ -568,8 +586,7 @@ describe('animated state across rebuilds', () => {
   });
 
   it('lets a mirrored element still on screen animate out after a rebuild', () => {
-    // Guards the seeded-`true` path rather than the bug itself: the out-branch
-    // is gated on `config.animated`, so seeding must not leave it stuck off.
+    // The out-branch needs `config.animated`, so seeding must not leave it off.
     const els = mount('<div data-motus="fade" data-motus-mirror="true"></div>');
     onscreen(els);
     rebuild(els);
@@ -605,9 +622,7 @@ describe('animated state across rebuilds', () => {
   });
 
   it('re-animates when the animated class was stripped from the DOM', () => {
-    // The class is what the stylesheet keys on, so it outranks anything
-    // remembered: a framework re-render that resets className must not leave
-    // the element hidden for good.
+    // The class outranks memory, so a `className` reset can't hide it for good.
     const els = mount('<div data-motus="fade"></div>');
     onscreen(els);
     rebuild(els);
@@ -624,8 +639,7 @@ describe('animated state across rebuilds', () => {
   });
 
   describe('with animatedClassName: false', () => {
-    // No class is written, so there is no DOM marker to read back and the
-    // WeakMap is the only thing standing between a rebuild and a duplicate event.
+    // No class is written, so the WeakMap alone prevents a duplicate event.
     const opts = options({ animatedClassName: false });
 
     it('still dedupes motus:in across a rebuild', () => {

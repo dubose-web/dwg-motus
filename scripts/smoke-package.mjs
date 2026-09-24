@@ -1,11 +1,9 @@
 /**
- * Packs the real tarball, installs it into a throwaway project, and asserts
- * against *that* rather than against the working tree.
+ * Pack the real tarball, install it in a throwaway project and test that.
  *
- * publint and attw check the shape of a package — its exports map, its type
- * resolution. Neither would have caught source maps that pointed at files the
- * package does not contain, and neither proves that
- * `@use '@duboseweb/motus/scss/core'` actually resolves. This does.
+ * publint and attw check the package's shape, but neither
+ * would catch source maps that point at missing files,
+ * or show that the documented `@use` path resolves.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -34,7 +32,13 @@ const assert = (condition, message) => {
 const npm = (args, cwd) =>
   execFileSync('npm', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
-/** Runs a snippet with the throwaway project as the resolution root. */
+/**
+ * Run a snippet with the throwaway project as the resolution root.
+ *
+ * @param  {string[]}  args
+ * @param  {string}  cwd
+ * @returns {string}
+ */
 const node = (args, cwd) =>
   execFileSync(process.execPath, args, {
     cwd,
@@ -42,7 +46,13 @@ const node = (args, cwd) =>
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-/** Every file in a directory, as posix-style paths relative to it. */
+/**
+ * Get every file in a directory, as posix-style paths relative to it.
+ *
+ * @param  {string}  dir
+ * @param  {string}  [base]
+ * @returns {string[]}
+ */
 const walk = (dir, base = dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = join(dir, entry.name);
@@ -52,9 +62,9 @@ const walk = (dir, base = dir) =>
 const workspace = mkdtempSync(join(tmpdir(), 'dwg-motus-smoke-'));
 
 try {
-  // Build first so the result cannot depend on whatever happens to be in
-  // dist/. Without this a running `npm run dev` watcher, which emits source
-  // maps and skips minification, silently invalidates every assertion below.
+  // We build first, so the result cannot depend on whatever
+  // is in `dist/`, where a running `npm run dev` watcher
+  // leaves source maps and unminified bundles behind.
   if (!process.argv.includes('--no-build')) {
     console.log('building…');
     npm(['run', 'build'], REPO);
@@ -171,9 +181,9 @@ try {
   });
 
   check('the UMD build defines a global', () => {
-    // It cannot be require()d: a UMD file inside a "type": "module" package is
-    // parsed as ESM. A sandbox with no `exports`/`module` forces the UMD
-    // wrapper down its browser-global branch, which is the one that matters.
+    // We can't `require()` it, since `"type": "module"` makes the UMD
+    // file parse as ESM, so a bare sandbox forces its wrapper down
+    // its browser-global branch, which is the one that matters.
     const sandbox = createContext({ self: {} });
     runInContext(readFileSync(join(installed, 'dist/motus.umd.js'), 'utf8'), sandbox);
     const global = sandbox.Motus ?? sandbox.self.Motus;
@@ -196,8 +206,7 @@ try {
   // ---- the documented SCSS path -----------------------------------------
 
   check('SCSS partials compile through the documented @use path', () => {
-    // loadPaths, not the exports map: this is the Dart Sass workflow that
-    // bypasses `exports` entirely, so it exercises the real on-disk layout.
+    // We use `loadPaths`, the Dart Sass route that ignores `exports` entirely.
     const css = sass.compileString(
       `@use '@duboseweb/motus/scss/config' with ($motus-distance: 250px);
        @use '@duboseweb/motus/scss/core';

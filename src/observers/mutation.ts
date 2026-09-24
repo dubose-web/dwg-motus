@@ -1,10 +1,12 @@
 import { ATTR } from '../constants.js';
 
 /**
- * Iterates the live NodeList directly rather than spreading it into an array.
- * This runs for every mutation record of every DOM change anywhere on the
- * page, most of which have nothing to do with motus, so the allocation is not
- * worth it.
+ * Determine if any of the nodes is or contains a `[data-motus]` element.
+ *
+ * It iterates the live NodeList directly, as this runs on every mutation.
+ *
+ * @param nodes
+ * @returns
  */
 const containsMotusNode = (nodes: NodeList): boolean => {
   for (const node of nodes) {
@@ -18,22 +20,25 @@ const containsMotusNode = (nodes: NodeList): boolean => {
 };
 
 export interface MutationHandle {
-  /** Stops watching and drops any batch still waiting for its frame. */
+  /**
+   * Stop watching and drop any batch still waiting for its frame.
+   */
   disconnect(): void;
 }
 
 /**
- * Watches the document for dynamically added `[data-motus]` elements.
+ * Watch the document for dynamically added `[data-motus]` elements.
  *
- * Only `addedNodes` are considered. Reacting to removals causes a rebuild storm
- * on SPA teardown for no benefit.
+ * Only `addedNodes` count; removals would cause a rebuild storm on teardown.
  *
- * Callbacks are batched into a single frame: framework hydration that appends
- * 200 elements should rebuild the observers once, not 200 times.
+ * Callbacks share one frame, so 200 hydrated elements rebuild only once.
  *
- * `disconnect()` cancels that frame as well. The callback is `refreshHard()`,
- * which re-runs `init()` when the library is not initialised, so a batch that
- * outlives `destroy()` would bring the whole library back.
+ * `disconnect()` cancels that frame too, because the callback is
+ * `refreshHard()`, which reruns `init()` after a teardown, so
+ * a stale batch would revive the library past `destroy()`.
+ *
+ * @param callback
+ * @returns
  */
 export const watch = (callback: () => void): MutationHandle => {
   let frame = 0;

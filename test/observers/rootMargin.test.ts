@@ -14,7 +14,7 @@ describe('getRootMargin', () => {
   it.each(['top-center', 'center-center', 'bottom-center'] as AnchorPlacement[])(
     '%s collapses the root symmetrically around the midpoint',
     (placement) => {
-      // 800/2 - 120 = 280
+      // We expect half of 800, minus the 120 offset, which is 280.
       expect(getRootMargin(placement, 120, 800)).toBe('-280px 0px -280px 0px');
     },
   );
@@ -44,7 +44,7 @@ describe('getRootMargin', () => {
 });
 
 describe('dependsOnHeight', () => {
-  // Derived from getRootMargin itself, so the two switches cannot drift.
+  // We derive this from `getRootMargin`, so the two switches can't drift.
   it.each([...ANCHOR_PLACEMENTS])('%s matches what getRootMargin actually reads', (placement) => {
     const reads = getRootMargin(placement, 120, 600) !== getRootMargin(placement, 120, 800);
     expect(dependsOnHeight(placement)).toBe(reads);

@@ -9,7 +9,9 @@ export type AnchorPlacement =
   | 'bottom-center'
   | 'bottom-top';
 
-/** Names that resolve to a `cubic-bezier()` value in `resolveEasing()`. */
+/**
+ * The names that resolve to a `cubic-bezier()` value in `resolveEasing()`.
+ */
 export type MotusEasingName =
   | 'ease-in-back'
   | 'ease-out-back'
@@ -27,68 +29,106 @@ export type MotusEasingName =
   | 'ease-out-quart'
   | 'ease-in-out-quart';
 
-/** CSS keywords, deliberately absent from the map so they pass through natively. */
+/**
+ * The native CSS keywords, which pass through `resolveEasing()` untouched.
+ */
 export type CssEasingKeyword = 'linear' | 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out';
 
 /**
- * `(string & {})` keeps editor autocomplete for the known names while still
- * accepting a raw `cubic-bezier(...)` value.
+ * A named easing, a native keyword or a raw timing function.
+ *
+ * `(string & {})` keeps autocomplete while accepting a raw `cubic-bezier()`.
  */
 export type Easing = MotusEasingName | CssEasingKeyword | (string & {});
 
-/** The Bootstrap-aligned tier names. `xs` is omitted — see `BREAKPOINTS`. */
+/**
+ * The Bootstrap-aligned tier names; `BREAKPOINTS` explains why `xs` is absent.
+ */
 export type BreakpointName = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 
 export type Breakpoints = Record<BreakpointName, number>;
 
 /**
- * A tier name means *below* that tier, so it is inclusive and downward:
- * `'lg'` disables everything narrower than the `lg` breakpoint.
+ * The conditions under which the library stays off.
  *
- * The `'phone' | 'tablet' | 'mobile'` keywords are the older device-class
- * path — `matchMedia` pointer detection rather than width, and mutually
- * exclusive, so `'tablet'` does not also cover phones.
+ * A tier name means below that tier, so `'lg'` disables anything narrower.
+ *
+ * The `'phone' | 'tablet' | 'mobile'` keywords form the legacy
+ * device-class path, matching pointers rather than viewport
+ * widths, and they are mutually exclusive of each other.
  */
 export type DisableOption =
   boolean | BreakpointName | 'phone' | 'tablet' | 'mobile' | (() => boolean);
 
 export interface MotusOptions {
-  /** Distance in px from the trigger point before an element animates. Default `120`. */
+  /**
+   * The distance in px from the trigger point, `120` by default.
+   */
   offset: number;
-  /** Delay before the transition starts, in ms. Default `0`. */
+  /**
+   * The delay in ms before the transition starts, `0` by default.
+   */
   delay: number;
-  /** Transition timing function. Default `'ease'`. */
+  /**
+   * The transition timing function, `'ease'` by default.
+   */
   easing: Easing;
-  /** Transition duration in ms. Default `400`. */
+  /**
+   * The transition duration in ms, `400` by default.
+   */
   duration: number;
-  /** Disable below a breakpoint, entirely, by device class, or via a predicate. Default `'lg'`. */
+  /**
+   * The tier, device, flag or predicate that disables it, `'lg'` by default.
+   */
   disable: DisableOption;
-  /** Viewport widths behind the `disable` tier names. Merged over the defaults. */
+  /**
+   * The viewport widths behind the `disable` tier names, merged over defaults.
+   */
   breakpoints: Breakpoints;
-  /** Animate only the first time an element enters the viewport. Default `false`. */
+  /**
+   * Whether elements animate only on first entry, `false` by default.
+   */
   once: boolean;
-  /** Animate back out when scrolling away. Ignored when `once` is true. Default `false`. */
+  /**
+   * Whether elements animate back out unless `once` is set, `false` by default.
+   */
   mirror: boolean;
-  /** Which part of the element meets which part of the viewport. Default `'top-bottom'`. */
+  /**
+   * The element and viewport edges that must meet, `'top-bottom'` by default.
+   */
   anchorPlacement: AnchorPlacement;
-  /** Event that starts the library. Default `'DOMContentLoaded'`. */
+  /**
+   * The event that starts the library, `'DOMContentLoaded'` by default.
+   */
   startEvent: string;
-  /** Class added when an element animates in. `false` skips it. Default `'motus-animate'`. */
+  /**
+   * The class added on entry (or `false`), `'motus-animate'` by default.
+   */
   animatedClassName: string | false;
-  /** Class added to every element at setup. `false` skips it. Default `'motus-init'`. */
+  /**
+   * The class added at setup (or `false`), `'motus-init'` by default.
+   */
   initClassName: string | false;
-  /** Also apply the `data-motus` value as class names (the Animate.css path). Default `false`. */
+  /**
+   * Whether to also add the `data-motus` value as classes, `false` by default.
+   */
   useClassNames: boolean;
-  /** Skip watching the DOM for dynamically added elements. Default `false`. */
+  /**
+   * Whether to skip watching for added elements, `false` by default.
+   */
   disableMutationObserver: boolean;
-  /** Resize debounce in ms, clamped to 16–500. Default `50`. */
+  /**
+   * The resize debounce in ms, clamped to 16–500 and `50` by default.
+   */
   debounceDelay: number;
 }
 
 /**
- * `breakpoints` is deliberately `Partial` rather than all-or-nothing: overriding
- * one tier must not force a consumer to restate the other four. `normalizeOptions`
- * merges it over the defaults.
+ * The options a consumer may pass to `init()`.
+ *
+ * `breakpoints` is `Partial` deliberately, so overriding a
+ * single tier doesn't force the consumer to restate the
+ * other four, since `normalizeOptions` merges it in.
  */
 export type MotusUserOptions = Partial<Omit<MotusOptions, 'breakpoints'>> & {
   breakpoints?: Partial<Breakpoints>;
@@ -96,16 +136,21 @@ export type MotusUserOptions = Partial<Omit<MotusOptions, 'breakpoints'>> & {
 
 export interface MotusEventDetail {
   /**
-   * The animating element. This is the live node — listeners should treat it as
-   * read-only; mutating it here affects the page.
+   * The animating element.
+   *
+   * It is the live node, so listeners should treat it as read-only.
    */
   node: HTMLElement;
 }
 
-/** Resolved per-element settings, built once per refresh. */
+/**
+ * The resolved settings for one element, rebuilt on every refresh.
+ */
 export interface ElementConfig {
   node: HTMLElement;
-  /** The element actually observed — `node`, or a `data-motus-anchor` target. */
+  /**
+   * The element actually observed: `node` or a `data-motus-anchor` target.
+   */
   observeTarget: Element;
   mirror: boolean;
   once: boolean;
@@ -117,17 +162,36 @@ export interface ElementConfig {
 }
 
 export interface ObserverHandle {
-  /** Enable callbacks and animate anything already on screen. */
+  /**
+   * Enable callbacks and animate anything already on screen.
+   */
   activate(): void;
+  /**
+   * Disconnect every pooled observer.
+   */
   disconnect(): void;
-  /** Whether any pool's `rootMargin` was built from the viewport height. */
+  /**
+   * Whether any pool's `rootMargin` was built from the viewport height.
+   */
   readonly heightDependent: boolean;
 }
 
 export interface MotusApi {
+  /**
+   * Initialise the library and return the elements it will animate.
+   */
   readonly init: (settings?: MotusUserOptions) => HTMLElement[] | undefined;
+  /**
+   * Rebuild the observers from the current DOM.
+   */
   readonly refresh: () => void;
+  /**
+   * Re-check the `disable` option, then rebuild or tear down to match.
+   */
   readonly refreshHard: () => void;
+  /**
+   * Tear the library down, leaving the `data-motus*` markup intact.
+   */
   readonly destroy: () => void;
 }
 

@@ -1,10 +1,11 @@
 import type { Easing } from '../types.js';
 
 /**
- * The CSS-native keywords (`ease`, `linear`, `ease-in`, `ease-out`,
- * `ease-in-out`) are deliberately absent — the fallthrough returns them
- * unchanged, and that same fallthrough is what lets a raw `cubic-bezier(...)`
- * value through untouched.
+ * The named easings that CSS does not provide natively.
+ *
+ * The native keywords are intentionally absent: `resolveEasing`
+ * passes them through unchanged, and the same fallthrough is
+ * what lets a raw `cubic-bezier(...)` value pass as well.
  */
 const EASING_MAP: Record<string, string> = {
   'ease-in-back': 'cubic-bezier(.6, -.28, .735, .045)',
@@ -28,4 +29,10 @@ const EASING_MAP: Record<string, string> = {
   'ease-in-out-quart': 'cubic-bezier(.77, 0, .175, 1)',
 };
 
+/**
+ * Resolve the given easing name to a CSS timing function.
+ *
+ * @param name
+ * @returns
+ */
 export const resolveEasing = (name: Easing): string => EASING_MAP[name] ?? name;

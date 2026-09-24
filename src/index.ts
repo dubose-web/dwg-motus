@@ -19,7 +19,9 @@ export { DEFAULTS } from './defaults.js';
 
 export { init, refresh, refreshHard, destroy };
 
-/** Frozen so consuming code cannot monkey-patch the API. */
+/**
+ * The public API, frozen so consuming code cannot monkey-patch it.
+ */
 const Motus: MotusApi = Object.freeze({ init, refresh, refreshHard, destroy });
 
 export default Motus;

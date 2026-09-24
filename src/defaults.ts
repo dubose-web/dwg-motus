@@ -1,9 +1,11 @@
 import type { MotusOptions } from './types.js';
 
 /**
- * Bootstrap 5's scale, so the tier names mean what they mean everywhere else.
- * `xs` is implicit at 0 and is deliberately not a valid `disable` target —
- * "disable below 0px" would never match.
+ * The breakpoint widths behind the `disable` tier names.
+ *
+ * They follow Bootstrap 5, so the tier names mean exactly what they
+ * mean everywhere else. `xs` is implicit at 0 and is not a valid
+ * `disable` target, as "disable below 0px" would never match.
  */
 export const BREAKPOINTS = Object.freeze({
   sm: 576,
@@ -16,8 +18,9 @@ export const BREAKPOINTS = Object.freeze({
 export const BREAKPOINT_NAMES = ['sm', 'md', 'lg', 'xl', 'xxl'] as const;
 
 /**
- * Frozen so a stray `Object.assign(DEFAULTS, settings)` can never poison
- * subsequent `init()` calls. Always merge into a fresh object.
+ * The default options.
+ *
+ * It's frozen so a stray `Object.assign()` onto it can't poison later calls.
  */
 export const DEFAULTS: Readonly<MotusOptions> = Object.freeze({
   offset: 120,
@@ -49,7 +52,9 @@ export const ANCHOR_PLACEMENTS = [
   'bottom-top',
 ] as const;
 
-/** The legacy device-class keywords. Touch-based, exclusive, not configurable. */
+/**
+ * The legacy device-class keywords, which are touch-based and exclusive.
+ */
 export const DISABLE_KEYWORDS = ['phone', 'tablet', 'mobile'] as const;
 
 export const DEBOUNCE_MIN = 16;

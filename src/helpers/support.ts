@@ -1,14 +1,17 @@
 /**
- * True when the browser supports IntersectionObserver natively.
+ * Determine if the browser supports IntersectionObserver natively.
  *
- * Checks the constructor type rather than `'IntersectionObserver' in window`,
- * because a stubbed-but-undefined global would otherwise pass the `in` test and
- * then throw on construction.
+ * It checks the constructor type rather than relying on
+ * `in`, because a stubbed but undefined global would
+ * pass that test and then throw when constructed.
  *
- * `isIntersecting` is required too. Chrome 51–57 shipped IntersectionObserver
- * without it; there it reads `undefined`, nothing on screen would ever animate,
- * and the stylesheet would keep it all hidden. Failing here sends those
- * browsers down the unsupported path instead, which leaves content visible.
+ * `isIntersecting` is required too, since Chrome 51–57 shipped
+ * IntersectionObserver without it, so nothing would animate
+ * and the stylesheet would leave it all hidden for good.
+ *
+ * Failing here sends those browsers down the unsupported path instead.
+ *
+ * @returns
  */
 export const isSupported = (): boolean => {
   if (typeof window === 'undefined') return false;

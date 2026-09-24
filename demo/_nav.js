@@ -1,5 +1,4 @@
-// Shared demo nav. The no-js guard lives inline in each page's <head>, where
-// nothing can block it.
+// We render the shared nav here; the no-js guard lives in each <head>.
 const PAGES = [
   ['index.html', 'Basics'],
   ['anchor.html', 'Anchors'],

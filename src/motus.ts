@@ -24,23 +24,40 @@ let mutationObs: MutationHandle | null = null;
 let listeners: TrackedListener[] = [];
 let initialized = false;
 let lastWindowHeight: number | null = null;
-/** The pending frame of the ready sequence, so a teardown can cancel it. */
+/**
+ * The pending frame of the ready sequence, so a teardown can cancel it.
+ */
 let readyFrame = 0;
 let options: MotusOptions = { ...DEFAULTS };
 
-/** Every listener goes through here so `destroy()` can remove all of them. */
+/**
+ * Register an event listener that `destroy()` will later remove.
+ *
+ * @param target
+ * @param event
+ * @param fn
+ */
 const listen = (target: EventTarget, event: string, fn: EventListener): void => {
   target.addEventListener(event, fn);
   listeners.push({ target, event, fn });
 };
 
+/**
+ * Get every `[data-motus]` element currently in the document.
+ *
+ * @returns
+ */
 const collectElements = (): HTMLElement[] => [
   ...document.querySelectorAll<HTMLElement>(`[${ATTR}]`),
 ];
 
 /**
- * Takes the whole options object rather than just `disable`, because a tier
- * name is meaningless without the breakpoint map it indexes into.
+ * Determine if the library should stay off for the given options.
+ *
+ * It takes all the options, since a tier name needs the breakpoint map.
+ *
+ * @param opts
+ * @returns
  */
 const isDisabled = (opts: MotusOptions): boolean => {
   if (document.documentElement.hasAttribute(DISABLED_ATTR)) return true;
@@ -57,15 +74,20 @@ const isDisabled = (opts: MotusOptions): boolean => {
     case 'tablet':
       return detect.tablet();
     default:
-      // A tier name means *below* that tier, so `'lg'` covers everything narrower.
+      // We read a tier name as "below", so `'lg'` covers anything narrower.
       return detect.below(opts.breakpoints[disable]);
   }
 };
 
 /**
- * True when `startEvent` has already fired, so waiting for it would wait
- * forever — and the stylesheet keeps every `[data-motus]` element hidden
- * until the library starts.
+ * Determine if `startEvent` has already fired.
+ *
+ * Listening for an event that has already fired would
+ * just wait forever, and the stylesheet keeps each
+ * `[data-motus]` element hidden until we start.
+ *
+ * @param startEvent
+ * @returns
  */
 const hasAlreadyFired = (startEvent: string): boolean => {
   const { readyState } = document;
@@ -74,11 +96,11 @@ const hasAlreadyFired = (startEvent: string): boolean => {
 };
 
 /**
- * Rebuilds the observers from the current DOM.
+ * Rebuild the observers from the current DOM.
  *
- * Unconditional by design — the width-only-resize optimisation lives in
- * `handleResize()`, not here, so that dynamically added content is always
- * picked up even though the viewport has not changed size.
+ * It is unconditional by design: the width-only resize shortcut
+ * lives in `handleResize()`, so dynamically added content is
+ * always picked up even when the viewport keeps its size.
  */
 const rebuild = (): void => {
   if (!initialized) return;
@@ -90,21 +112,19 @@ const rebuild = (): void => {
   observers = createObserver(buildConfigs(elements, options), lastWindowHeight);
 
   if (document.body.classList.contains(CLASS_READY)) {
-    // Already painted once — the new observers just need un-gating.
+    // We have already painted once, so the new observers only need un-gating.
     observers?.activate();
     return;
   }
 
-  /**
-   * Two frames, not one. The first frame must paint the elements in their
-   * initial hidden state; only then does `motus-ready` enable transitions and
-   * `activate()` add the animate class. Collapsing this makes every
-   * above-the-fold element snap to its final position with no animation.
-   *
-   * A second rebuild inside those frames restarts the sequence rather than
-   * queueing another one, so its new elements get their hidden-state paint too.
-   */
+  // A second rebuild inside these two frames restarts
+  // the sequence rather than queueing another one,
+  // so its new elements get their hidden paint.
   cancelAnimationFrame(readyFrame);
+
+  // We wait two frames, not one: the first paints each element hidden, and
+  // only then do we enable transitions and `activate()` since otherwise
+  // above-the-fold elements would snap into place with no animation.
   readyFrame = requestAnimationFrame(() => {
     readyFrame = requestAnimationFrame(() => {
       readyFrame = 0;
@@ -115,12 +135,11 @@ const rebuild = (): void => {
 };
 
 /**
- * First run: flips the initialised flag, sets the global custom properties,
- * then builds.
+ * Mark the library as started, set its global properties, then build it.
  *
- * The properties are set here rather than in `init()` because `<body>` is null
- * when `init()` runs from a `<head>` script, and nothing reads them before
- * `motus-ready` is added anyway.
+ * These are set here rather than in `init()` because `<body>`
+ * is still null when `init()` runs from a `<head>` script,
+ * and nothing reads them before `motus-ready` is added.
  */
 const start = (): void => {
   initialized = true;
@@ -129,11 +148,15 @@ const start = (): void => {
 };
 
 /**
- * `rootMargin` is vertical-only, so a width-only resize needs no rebuild. Nor
- * does a height change when every pool uses a `*-bottom` placement (the
- * default), whose `rootMargin` ignores the height. That second check is what
- * spares mobile pages: the URL bar showing and hiding changes `innerHeight`,
- * and would otherwise tear down and recreate every observer mid-scroll.
+ * Handle a debounced window resize.
+ *
+ * `rootMargin` is vertical-only, so a width-only resize calls
+ * for no rebuild, and neither does a height change if each
+ * pool uses a `*-bottom` placement such as the default.
+ *
+ * The height check spares mobile pages, where the URL bar
+ * appearing and hiding changes `innerHeight` and would
+ * otherwise recreate each observer while scrolling.
  */
 const handleResize = (): void => {
   if (!initialized) return;
@@ -142,21 +165,23 @@ const handleResize = (): void => {
   rebuild();
 };
 
+/**
+ * Rebuild the observers from the current DOM once the library has started.
+ */
 export const refresh = (): void => rebuild();
 
+/**
+ * Re-check the `disable` option, then disable, re-initialise or rebuild.
+ */
 export const refreshHard = (): void => {
   if (isDisabled(options)) {
     disable();
     return;
   }
 
-  /**
-   * Coming back from disabled is not a rebuild. When `init()` bailed at the
-   * gate it returned before setting `initialized`, installing the mutation
-   * observer or binding any listener, so `rebuild()` would no-op here. Re-run
-   * `init()` with the options already in hand — they are normalised, so the
-   * second pass revalidates cleanly and warns about nothing.
-   */
+  // We can't just rebuild here, because `init()` set no state
+  // when it bailed at the gate, so instead we'll re-run it
+  // with the options in hand, since they're normalised.
   if (!initialized) {
     init(options);
     return;
@@ -167,14 +192,16 @@ export const refreshHard = (): void => {
 };
 
 /**
- * Tears down observers and removes the classes and custom properties this
- * library added. Deliberately leaves `data-motus*` attributes alone so the
- * markup survives and `init()` works again afterwards.
+ * Disconnect the observers and remove what the library added to elements.
+ *
+ * Only the classes and custom properties are removed;
+ * `data-motus*` attributes are kept, so the markup
+ * survives and `init()` works again afterwards.
  */
 const disable = (): void => {
-  // The CSS hides every [data-motus] element until it animates. With the
-  // library off, nothing will ever add that class, so this attribute is what
-  // stops the page from rendering blank.
+  // The CSS hides every `[data-motus]` element until it animates,
+  // and with the library off nothing will ever add that class,
+  // so this attribute keeps us from a blank page appearing.
   document.documentElement.setAttribute(INACTIVE_ATTR, '');
 
   mutationObs?.disconnect();
@@ -194,15 +221,16 @@ const disable = (): void => {
     if (options.animatedClassName) el.classList.remove(options.animatedClassName);
   }
 
-  // The classes are gone, so the remembered state is now a lie. Reset here
-  // rather than in destroy() so the disable -> refreshHard() round trip
-  // re-animates. destroy() calls disable() first, so it inherits this.
+  // The classes are gone, so the remembered state is now out
+  // of date. We reset it here rather than in `destroy()`,
+  // so a later `refreshHard()` re-animates everything.
   resetAnimatedState();
 };
 
 /**
- * Full teardown. Note `options` is intentionally left in place — `disable()`
- * needs the last-used class names to remove them.
+ * Tear the library down completely, removing every listener it registered.
+ *
+ * `options` stays in place, since `disable()` needs the last class names.
  */
 export const destroy = (): void => {
   disable();
@@ -219,15 +247,27 @@ export const destroy = (): void => {
   lastWindowHeight = null;
 };
 
+/**
+ * Initialise the library, tearing down any previous run first.
+ *
+ * The observers are built when `startEvent` fires, or at once if it has.
+ *
+ * It returns `undefined` when the browser is unsupported or it's disabled.
+ *
+ * @param settings
+ * @returns
+ */
 export const init = (settings?: MotusUserOptions): HTMLElement[] | undefined => {
-  // Repeated init() is common in SPA route handlers; without this, every call
-  // leaks another set of listeners and observers.
+  // SPA routers often call `init()` more than once, so we
+  // tear down first; otherwise every call would leak a
+  // fresh set of listeners and observers each time.
   if (initialized) destroy();
 
   options = normalizeOptions(settings);
 
-  // Cleared before the gate below can set it again, so re-initialising with
-  // different options is not permanently poisoned by the last run.
+  // We clear this before the gate below can set it again,
+  // so initialising again with different options won't
+  // be poisoned by the previous run of the library.
   document.documentElement.removeAttribute(INACTIVE_ATTR);
 
   if (!isSupported()) {
@@ -240,8 +280,9 @@ export const init = (settings?: MotusUserOptions): HTMLElement[] | undefined => 
 
   elements = collectElements();
 
-  // Checked before the MutationObserver is installed: on a disabled page there
-  // is no reason for every DOM mutation to run the disable path again.
+  // We check this before installing the MutationObserver,
+  // since there is no reason for every DOM mutation on
+  // a disabled page to go through the disable path.
   if (isDisabled(options)) {
     disable();
     return undefined;
@@ -253,8 +294,7 @@ export const init = (settings?: MotusUserOptions): HTMLElement[] | undefined => 
 
   if (options.startEvent === 'DOMContentLoaded' || options.startEvent === 'load') {
     listen(window, 'load', () => {
-      // Guarded so the first run does not happen twice when DOMContentLoaded
-      // already fired.
+      // We guard this so the first run can't repeat after DOMContentLoaded.
       if (!initialized) start();
     });
   } else {

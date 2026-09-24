@@ -6,26 +6,35 @@ import { dependsOnHeight, getRootMargin, getThreshold } from './rootMargin.js';
 
 interface Pool {
   observer: IntersectionObserver;
-  /** One observed target can back several configs (a shared `data-motus-anchor`). */
+  /**
+   * The configs behind each target, since a shared anchor can back several.
+   */
   targets: Map<Element, ElementConfig[]>;
   /**
-   * Entries the browser delivered before `activate()` opened the gate.
+   * The entries delivered before `activate()` opened the gate.
    *
-   * These are kept rather than discarded: IntersectionObserver will not
-   * re-deliver an entry whose intersection state has not changed, so throwing
-   * them away would strand every element that was already on screen at init.
+   * They're kept rather than discarded, as IntersectionObserver
+   * will not re-deliver an unchanged entry, so dropping them
+   * would strand everything already on screen at startup.
    */
   buffered: IntersectionObserverEntry[];
 }
 
 /**
- * The target sits entirely above the trigger zone.
+ * Determine if the target sits entirely above the trigger zone.
  *
- * A reload restores the scroll position before `init()`, so the browser's first
- * record for anything already scrolled past reports it as not intersecting. It
- * will never cross the zone again, and the stylesheet keeps `[data-motus]`
- * hidden until it animates — without this those sections stay blank. Reads the
- * entry only: no layout. A null `rootBounds` (cross-origin iframe) is not past.
+ * A refresh restores the scroll position before `init()`,
+ * so the browser's initial record for anything already
+ * scrolled past reports it as not intersecting yet.
+ *
+ * It can never cross the zone again, and the stylesheet
+ * keeps `[data-motus]` hidden until they animate, so
+ * without this, such sections would remain blank.
+ *
+ * Only the entry is read; a null `rootBounds` (cross-origin) is never past.
+ *
+ * @param entry
+ * @returns
  */
 const isPast = (entry: IntersectionObserverEntry): boolean =>
   !entry.isIntersecting &&
@@ -33,25 +42,31 @@ const isPast = (entry: IntersectionObserverEntry): boolean =>
   entry.boundingClientRect.bottom <= entry.rootBounds.top;
 
 /**
- * Creates the IntersectionObservers for a set of resolved configs.
+ * Create the pooled IntersectionObservers for the given configs.
  *
- * Observers are pooled by `anchorPlacement` + `offset`, because those two
- * values are the only inputs to `rootMargin` and `threshold`. A page with 200
- * elements sharing one configuration gets one observer, not 200.
+ * Observers are pooled by `anchorPlacement` and `offset`,
+ * the only two inputs to `rootMargin` and `threshold`,
+ * so 200 elements sharing a setup get one observer.
+ *
+ * @param configs
+ * @param windowHeight
+ * @returns
  */
 export const createObserver = (
   configs: ElementConfig[],
   /**
-   * Passed in by `rebuild()`, which has already read it. Every pool would
-   * otherwise re-read `window.innerHeight` through `getRootMargin`'s default.
+   * The viewport height, passed in by `rebuild()`, which has already read it.
+   *
+   * Every pool would otherwise re-read it through `getRootMargin`'s default.
    */
   windowHeight: number = window.innerHeight,
 ): ObserverHandle => {
   /**
-   * IntersectionObserver fires its first callback immediately on `observe()`,
-   * before the stylesheet's `motus-ready` gate is in place. Holding callbacks
-   * back until `activate()` is what stops above-the-fold elements from jumping
-   * straight to their final state with no visible transition.
+   * Whether `activate()` has opened the gate yet.
+   *
+   * IntersectionObserver fires its first callback as soon as `observe()`
+   * runs, before `motus-ready` is in place, so holding callbacks back
+   * stops elements snapping straight to their final state at init.
    */
   let activated = false;
   let heightDependent = false;
@@ -63,8 +78,9 @@ export const createObserver = (
     if (!targets) return;
 
     for (const config of targets) {
-      // A config that can animate out treats "past" as out, so it only reveals
-      // inside the zone. Everything else counts scrolling past as reaching it.
+      // We treat "past" as out for a config that can animate
+      // out, so it only reveals inside the zone; anything
+      // else counts scrolling past as reaching it too.
       const reversible = config.mirror && !config.once;
 
       if (entry.isIntersecting || (!reversible && isPast(entry))) {
@@ -82,8 +98,9 @@ export const createObserver = (
       }
     }
 
-    // Only stop observing once *every* config on this target is finished —
-    // with a shared anchor, unobserving on the first one strands the rest.
+    // We only stop observing once every config on this target
+    // is finished, since with a shared anchor, unobserving
+    // on the first would leave behind the rest of them.
     if (targets.every((config) => config.once && config.animated)) {
       pool.observer.unobserve(entry.target);
     }
@@ -92,7 +109,7 @@ export const createObserver = (
   const createPool = (anchorPlacement: AnchorPlacement, offset: number): Pool => {
     if (dependsOnHeight(anchorPlacement)) heightDependent = true;
 
-    // The callback only runs after observe(), by which time `pool` is assigned.
+    // We can rely on `pool` here, since the callback runs after `observe()`.
     const pool: Pool = {
       targets: new Map(),
       buffered: [],
@@ -115,9 +132,7 @@ export const createObserver = (
   };
 
   for (const config of configs) {
-    // A finished `once` config can only produce callbacks it would ignore.
-    // Skipping before pooling leaves the unobserve rule intact — the config
-    // simply never enters the target Map.
+    // A finished `once` config would only ignore its callbacks, so we skip it.
     if (config.once && config.animated) continue;
 
     const key = `${config.anchorPlacement}-${config.offset}`;
@@ -146,16 +161,15 @@ export const createObserver = (
     },
 
     /**
-     * Opens the gate and settles whatever the observers already know.
+     * Open the gate and settle whatever the observers already know.
      *
-     * Replays the entries that arrived while gated, plus any the browser has
-     * computed but not yet dispatched. That is what makes an element which was
-     * already on screen at init animate, without re-deriving the trigger
-     * geometry by hand: every decision here comes from the browser, using each
-     * pool's own rootMargin and threshold.
+     * It replays the entries that arrived while gated,
+     * plus any the browser has computed but not yet
+     * dispatched, so elements on screen animate.
      *
-     * Entries are processed oldest-first so the final state reflects the most
-     * recent observation.
+     * No geometry is worked out by hand; the browser decides for each pool.
+     *
+     * Entries run oldest-first, so the most recent observation wins.
      */
     activate: () => {
       activated = true;

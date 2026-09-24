@@ -9,36 +9,61 @@ import {
 import { LOG_PREFIX } from './constants.js';
 import type { AnchorPlacement, MotusOptions, MotusUserOptions } from './types.js';
 
-/** Tier names first — they are the documented path; the device keywords are legacy. */
+/**
+ * The valid `disable` strings, with the documented tier names first.
+ */
 const DISABLE_VALUES: readonly string[] = [...BREAKPOINT_NAMES, ...DISABLE_KEYWORDS];
 
+/**
+ * Determine if the given value is a finite, non-negative number.
+ *
+ * @param value
+ * @returns
+ */
 const isNonNegativeNumber = (value: unknown): boolean =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
 /**
- * `false`, or a string `classList.add` accepts. Whitespace makes it throw —
- * inside `init()` for `initClassName`, inside an observer callback for
- * `animatedClassName`. An empty string is allowed: it is falsy, so the library
- * treats it like `false` and never hands it to `classList`.
+ * Determine if the value is `false` or a string `classList.add` accepts.
+ *
+ * Any whitespace makes `classList.add` throw while
+ * setting up for `initClassName` and inside the
+ * observer callback for `animatedClassName`.
+ *
+ * An empty string is allowed: it is falsy,
+ * so the library treats it like `false`
+ * and never hands it to `classList`.
+ *
+ * @param value
+ * @returns
  */
 const isClassNameOption = (value: unknown): boolean =>
   value === false || (typeof value === 'string' && !/\s/.test(value));
 
+/**
+ * Determine if the given value is a valid `disable` option.
+ *
+ * @param value
+ * @returns
+ */
 const isDisableOption = (value: unknown): boolean =>
   typeof value === 'boolean' ||
   typeof value === 'function' ||
   (typeof value === 'string' && DISABLE_VALUES.includes(value));
 
 /**
- * Merges user settings over the defaults, clamps what needs clamping, and
- * reports every problem in a single grouped warning so one typo does not
- * produce a wall of console noise.
+ * Merge the user settings over the defaults and clamp what needs clamping.
+ *
+ * Problems share one grouped warning, so a typo can't flood the console.
+ *
+ * @param settings
+ * @returns
  */
 export const normalizeOptions = (settings: MotusUserOptions = {}): MotusOptions => {
   const problems: string[] = [];
 
   for (const key of Object.keys(settings)) {
-    // Own keys only: `in` walks the prototype, so `toString` would pass.
+    // We check own keys, as `in` walks the prototype and would pass `toString`.
     if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) {
       problems.push(`Unknown option "${key}".`);
     }
@@ -66,16 +91,13 @@ export const normalizeOptions = (settings: MotusUserOptions = {}): MotusOptions 
     problems.push(
       `"disable" must be a boolean, a function, or one of ${DISABLE_VALUES.join(', ')}. Using ${String(DEFAULTS.disable)}.`,
     );
-    // Falls back to the default, not to `false` — a typo'd tier name must not
-    // silently re-enable animations on every viewport.
+    // We fall back to the default so a typo never re-enables every animation.
     options.disable = DEFAULTS.disable;
   }
 
-  /**
-   * `Object.assign` above copied the frozen default map by reference, so a
-   * partial override would otherwise drop the tiers it did not mention.
-   * Re-merge into a fresh object; `DEFAULTS.breakpoints` is never the target.
-   */
+  // `Object.assign` copied the breakpoint map by reference,
+  // so a partial override would drop the tiers it didn't
+  // mention. We re-merge into a fresh object instead.
   options.breakpoints = Object.assign({}, DEFAULTS.breakpoints, settings.breakpoints);
 
   for (const name of BREAKPOINT_NAMES) {

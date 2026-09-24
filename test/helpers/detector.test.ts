@@ -14,8 +14,7 @@ describe('below()', () => {
   });
 
   it('subtracts 0.02 so fractional widths have no dead zone', () => {
-    // A 991.5px window must still count as below the 992px breakpoint, which
-    // `- 1` would get right but only by accident; `- 0.02` is the exact edge.
+    // `- 0.02` keeps a 991.5px window below 992px, where `- 1` would miss it.
     expect(belowQuery(992)).toBe('(max-width: 991.98px)');
     stubMatchMedia([belowQuery(992)]);
     expect(detect.below(992)).toBe(true);

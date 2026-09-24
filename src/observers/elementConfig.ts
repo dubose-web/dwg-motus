@@ -5,8 +5,13 @@ import { setElementVars } from '../helpers/dom.js';
 import type { AnchorPlacement, ElementConfig, MotusOptions } from '../types.js';
 
 /**
- * Reads an inline option that is only meaningful as a string. `getInlineOption`
- * coerces `"true"`/`"false"` to booleans, which none of these callers want.
+ * Get an inline option that is only meaningful as a string.
+ *
+ * `getInlineOption` makes `"true"` and `"false"` booleans, unwanted here.
+ *
+ * @param node
+ * @param key
+ * @returns
  */
 const getInlineString = (node: HTMLElement, key: string): string | undefined => {
   const value = getInlineOption(node, key);
@@ -14,14 +19,19 @@ const getInlineString = (node: HTMLElement, key: string): string | undefined => 
 };
 
 /**
- * Resolves the anchor element for `data-motus-anchor`.
+ * Resolve the element to observe for `data-motus-anchor`.
  *
- * An invalid CSS selector makes `querySelector` throw, which would otherwise
- * take down the whole refresh; fall back to the node itself.
+ * An invalid selector makes `querySelector` throw, which
+ * would otherwise take down the whole refresh, so the
+ * lookup falls back to the element itself instead.
  *
- * `resolved` memoises the lookup for the duration of one `buildConfigs` pass,
- * so a page where 50 elements share an anchor runs one query per rebuild
- * rather than 50. It also means a bad selector warns once, not once per node.
+ * `resolved` memoises lookups across one `buildConfigs` pass,
+ * so 50 elements sharing an anchor cost a single query per
+ * rebuild, and a bad selector warns only once per pass.
+ *
+ * @param node
+ * @param resolved
+ * @returns
  */
 const resolveAnchor = (node: HTMLElement, resolved: Map<string, Element | null>): Element => {
   const selector = getInlineString(node, 'anchor');
@@ -41,15 +51,22 @@ const resolveAnchor = (node: HTMLElement, resolved: Map<string, Element | null>)
 };
 
 /**
- * Builds the resolved per-element settings, and performs the only DOM writes
- * that happen at setup time: the init class and the per-element CSS variables.
+ * Resolve the settings for each of the given elements.
+ *
+ * It also performs the only DOM writes made at
+ * setup time here, which are the init class
+ * and the per-element custom properties.
+ *
+ * @param elements
+ * @param options
+ * @returns
  */
 export const buildConfigs = (elements: HTMLElement[], options: MotusOptions): ElementConfig[] => {
   const anchors = new Map<string, Element | null>();
 
-  // Shared, because with the default `useClassNames: false` every element ends
-  // up with the same list. An empty array is what makes
-  // `animatedClassName: false` skip the class entirely.
+  // We share one list, since with the default `useClassNames: false`
+  // each element has the same classes, and an empty array is what
+  // lets `animatedClassName: false` skip the class altogether.
   const baseClassNames = options.animatedClassName ? [options.animatedClassName] : [];
 
   return elements.map((node) => {
@@ -60,8 +77,9 @@ export const buildConfigs = (elements: HTMLElement[], options: MotusOptions): El
     const anchorPlacement = (getInlineString(node, 'anchor-placement') ??
       options.anchorPlacement) as AnchorPlacement;
 
-    // A non-numeric offset would otherwise poison the observer pool key
-    // (`"top-bottom-NaN"`) and every comparison in activate().
+    // A non-numeric offset would poison the pool key with
+    // `"top-bottom-NaN"` and yield a `rootMargin` that
+    // the IntersectionObserver constructor rejects.
     const rawOffset = Number(getInlineOption(node, 'offset', options.offset));
     const offset = Number.isFinite(rawOffset) ? rawOffset : options.offset;
 
@@ -75,10 +93,10 @@ export const buildConfigs = (elements: HTMLElement[], options: MotusOptions): El
       node.classList.add(options.initClassName);
     }
 
-    // `useClassNames` also applies the data-motus value itself, which is how
-    // the Animate.css integration works. Split on any whitespace: a tab or
-    // newline left in a token makes `classList.add` throw mid-callback.
+    // We also apply the `data-motus` value itself for the Animate.css path.
     const custom = options.useClassNames ? node.getAttribute(ATTR) : null;
+
+    // We split on any whitespace, as a stray tab makes `classList.add` throw.
     const animatedClassNames = custom
       ? baseClassNames.concat(custom.split(/\s+/).filter((name) => name !== ''))
       : baseClassNames;
@@ -90,9 +108,10 @@ export const buildConfigs = (elements: HTMLElement[], options: MotusOptions): El
       once,
       id,
       animatedClassNames,
-      // Seeded, not reset: rebuild() calls activate() as soon as the page is
-      // ready, which replays an "intersecting" record for everything on screen.
-      // A fresh `false` here makes that replay re-fire `motus:in`.
+
+      // We seed this rather than reset it: `rebuild()` calls `activate()`
+      // as soon as it can, which replays an "intersecting" record, and
+      // a fresh `false` would fire `motus:in` a second time for it.
       animated: seedAnimated(node, options.animatedClassName),
       anchorPlacement,
       offset,

@@ -28,7 +28,7 @@ describe('resolveEasing', () => {
     expect(new Set(MAPPED.map(resolveEasing)).size).toBe(15);
   });
 
-  // These are deliberately absent from the map so the browser handles them.
+  // These are left out of the map on purpose, so the browser handles them.
   it.each(['ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out'])(
     'passes the CSS keyword %s through untouched',
     (keyword) => {

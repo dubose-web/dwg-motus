@@ -25,7 +25,9 @@ const mount = (count = 1): HTMLElement[] => {
   return els;
 };
 
-/** Runs the two frames the ready sequence needs. */
+/**
+ * Run every queued frame, including the two the ready sequence needs.
+ */
 const settleFrames = () => raf.flushAll();
 
 beforeEach(() => {
@@ -78,7 +80,7 @@ describe('init()', () => {
 
     init();
 
-    // Every observer from the first run is disconnected.
+    // We expect every observer from the first run to be disconnected.
     expect(
       MockIntersectionObserver.instances.slice(0, firstRunObservers).every((o) => o.disconnected),
     ).toBe(true);
@@ -106,7 +108,7 @@ describe('init()', () => {
   });
 
   it('sets the global custom properties when init() runs before <body> exists', () => {
-    // A classic <script> in <head>: body is null until the parser reaches it.
+    // We mimic a `<head>` script, where the body is null until parsed.
     mount();
     const body = document.body;
     Object.defineProperty(document, 'body', { get: () => null, configurable: true });
@@ -171,7 +173,7 @@ describe('startEvent timing', () => {
   const isReady = () => document.body.classList.contains('motus-ready');
 
   it("starts at once for 'load' when the page has already loaded", () => {
-    // The listener alone would wait for an event that already fired.
+    // We'd wait forever on the listener alone, as the event already fired.
     setReadyState('complete');
     mount();
     init({ startEvent: 'load' });
@@ -207,7 +209,7 @@ describe('the ready sequence', () => {
     mount();
     init();
 
-    // init() calls refresh synchronously; nothing may be ready yet.
+    // We check before any frame runs, as `init()` builds synchronously.
     expect(document.body.classList.contains('motus-ready')).toBe(false);
 
     raf.flush();
@@ -234,7 +236,7 @@ describe('the ready sequence', () => {
     init();
     settleFrames();
 
-    // A later element, added after the first paint.
+    // We add a later element, after the first paint.
     document.body.insertAdjacentHTML('beforeend', '<div data-motus="fade"></div>');
     const added = document.body.lastElementChild as HTMLElement;
     setRect(added, { top: 100, bottom: 300 });
@@ -249,7 +251,7 @@ describe('the ready sequence', () => {
 
 describe('teardown during pending frames', () => {
   it('does not add motus-ready after destroy()', () => {
-    // A stale ready class would make the next init() skip its two frames.
+    // A stale ready class would make the next `init()` skip both its frames.
     mount();
     init();
     destroy();
@@ -279,7 +281,7 @@ describe('teardown during pending frames', () => {
 
     document.body.insertAdjacentHTML('beforeend', '<div data-motus="fade"></div>');
     const added = document.body.lastElementChild as HTMLElement;
-    // MutationObserver delivers on a microtask; the rebuild waits for a frame.
+    // We wait for MutationObserver's microtask, then for the rebuild's frame.
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     destroy();
@@ -292,7 +294,7 @@ describe('teardown during pending frames', () => {
 });
 
 describe('resize', () => {
-  // Only the timers the debounce uses: faking rAF would bypass the frame stub.
+  // We fake only the debounce's timers, as faking rAF skips the frame stub.
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
   });
@@ -308,8 +310,7 @@ describe('resize', () => {
   };
 
   it('skips the rebuild on a height change when no placement reads the height', () => {
-    // The default top-bottom rootMargin ignores the height; a mobile URL bar
-    // toggling must not tear every observer down mid-scroll.
+    // The default placement ignores height, so a URL bar toggle can't rebuild.
     mount();
     init();
     settleFrames();
@@ -357,7 +358,7 @@ describe('refresh()', () => {
     settleFrames();
     const before = MockIntersectionObserver.instances.length;
 
-    // The resize path keeps the height guard; refresh() deliberately does not.
+    // Resize keeps the height guard, but `refresh()` deliberately skips it.
     window.dispatchEvent(new Event('resize'));
     expect(MockIntersectionObserver.instances).toHaveLength(before);
   });
@@ -375,8 +376,7 @@ describe('refresh()', () => {
   });
 
   it('does not re-fire motus:in for elements that already animated', () => {
-    // The regression: rebuild() throws the configs away and calls activate(),
-    // which replays an "intersecting" record for everything still on screen.
+    // This guards the replay that re-fired `motus:in` after a rebuild.
     const els = mount();
     setRect(els[0]!, { top: 100, bottom: 300 });
     init();
@@ -404,8 +404,7 @@ describe('refresh()', () => {
 
   it('is not reachable with the internal initialize flag', () => {
     mount();
-    // A consumer calling refresh(true) must not be able to mark the library
-    // initialised from outside.
+    // We check that `refresh(true)` can't mark the library initialised.
     (refresh as () => void)();
     expect(document.body.classList.contains('motus-ready')).toBe(false);
   });
@@ -459,14 +458,14 @@ describe('disable', () => {
   });
 
   it('treats a tier name as "below that tier", not that tier alone', () => {
-    // 900px wide: under lg, over md. 'md' must not disable here.
+    // At 900px we are under `lg` but over `md`, so `'md'` must not disable.
     stubMatchMedia([BELOW_LG]);
     mount();
     expect(init({ disable: 'md' })).toHaveLength(1);
   });
 
   it('disables for every tier at or above the viewport width', () => {
-    // 500px wide: under sm, md and lg alike.
+    // At 500px we are under `sm`, `md` and `lg` alike.
     stubMatchMedia([BELOW_SM, BELOW_MD, BELOW_LG]);
     mount();
     expect(init({ disable: 'sm' })).toBeUndefined();
@@ -475,7 +474,7 @@ describe('disable', () => {
   it('honours a custom breakpoint width', () => {
     stubMatchMedia([belowQuery(1400)]);
     mount();
-    // Default lg (992) does not match at this width; moving lg to 1400 does.
+    // The default `lg` of 992 doesn't match here, but moving it to 1400 does.
     expect(init({ breakpoints: { lg: 1400 } })).toBeUndefined();
   });
 
@@ -499,7 +498,7 @@ describe('disable', () => {
     init();
     expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
 
-    // Re-initialising with the gate off must not stay wedged off.
+    // We make sure re-initialising with the gate off doesn't stay wedged off.
     stubMatchMedia([]);
     expect(init()).toHaveLength(1);
     expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(false);
@@ -554,13 +553,13 @@ describe('refreshHard()', () => {
     expect(init()).toBeUndefined();
     expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(true);
 
-    // The viewport widened past the breakpoint.
+    // We widen the viewport past the breakpoint.
     stubMatchMedia([]);
     setRect(els[0]!, { top: 100, bottom: 300 });
     refreshHard();
     settleFrames();
 
-    // Not just un-flagged — actually observing and animating again.
+    // We check it's truly observing and animating again, not just un-flagged.
     expect(document.documentElement.hasAttribute('data-motus-inactive')).toBe(false);
     expect(document.body.classList.contains('motus-ready')).toBe(true);
     expect(els[0]!.classList.contains('motus-init')).toBe(true);
@@ -624,8 +623,7 @@ describe('destroy()', () => {
   });
 
   it('fires motus:in again on re-init', () => {
-    // disable() strips the animated class, so the remembered state has to go
-    // with it — otherwise the re-init animates nothing.
+    // `disable()` strips the class, so the remembered state must go with it.
     const els = mount();
     setRect(els[0]!, { top: 100, bottom: 300 });
     init();
@@ -648,8 +646,7 @@ describe('dynamically added content', () => {
     init();
     settleFrames();
 
-    // The viewport has not changed size — the width-only-resize optimisation
-    // must not suppress a rebuild triggered by new DOM.
+    // The size is unchanged, so the resize shortcut mustn't block this rebuild.
     document.body.insertAdjacentHTML('beforeend', '<div data-motus="fade"></div>');
     const added = document.body.lastElementChild as HTMLElement;
     setRect(added, { top: 100, bottom: 300 });
@@ -680,9 +677,7 @@ describe('dynamically added content', () => {
   });
 
   it('re-animates a node whose classes a re-render reset', () => {
-    // Detach, wipe className, re-attach — what a framework re-render looks
-    // like. The CSS hides every [data-motus] element until it animates, so a
-    // rebuild that trusted a remembered `animated` would hide this for good.
+    // We detach, wipe `className` and re-attach, as a framework re-render does.
     const els = mount();
     setRect(els[0]!, { top: 100, bottom: 300 });
     init();

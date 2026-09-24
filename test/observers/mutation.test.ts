@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { watch } from '../../src/observers/mutation.js';
 import { raf } from '../setup.js';
 
-/** MutationObserver batches on a microtask; give it one. */
+/**
+ * Wait a macrotask, by which point MutationObserver has delivered.
+ */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('mutation observer', () => {
@@ -59,7 +61,7 @@ describe('mutation observer', () => {
   });
 
   it('drops a pending batch on disconnect()', async () => {
-    // The callback is refreshHard(), which would re-init a destroyed library.
+    // We cancel it, as `refreshHard()` would re-init a torn-down library.
     const callback = vi.fn();
     const handle = watch(callback);
 
